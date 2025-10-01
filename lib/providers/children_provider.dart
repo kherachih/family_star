@@ -19,7 +19,7 @@ class ChildrenProvider with ChangeNotifier {
       _children = await _firestoreService.getChildrenByParentId(parentId);
       print('✅ ${_children.length} enfant(s) chargé(s)');
       for (var child in _children) {
-        print('   - ${child.name} (${child.totalStars} étoiles)');
+        print('   - ${child.name} (${child.stars} étoiles)');
       }
       _clearError();
     } catch (e) {
@@ -115,10 +115,10 @@ class ChildrenProvider with ChangeNotifier {
       if (childIndex == -1) return false;
 
       final currentChild = _children[childIndex];
-      final newStarCount = currentChild.totalStars + starChange;
+      final newStarCount = currentChild.stars + starChange;
 
       final updatedChild = currentChild.copyWith(
-        totalStars: newStarCount,
+        stars: newStarCount,
         updatedAt: DateTime.now(),
       );
 

@@ -47,7 +47,7 @@ class DatabaseService {
         name TEXT NOT NULL,
         age INTEGER NOT NULL,
         photoUrl TEXT,
-        totalStars INTEGER DEFAULT 0,
+        stars INTEGER DEFAULT 0,
         objectives TEXT,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,

@@ -5,6 +5,10 @@ import '../models/parent.dart';
 import '../models/child.dart';
 import '../models/task.dart';
 import '../models/star_loss.dart';
+import '../models/reward.dart';
+import '../models/sanction.dart';
+import '../models/reward_exchange.dart';
+import '../models/sanction_applied.dart';
 
 class FirestoreService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,6 +18,10 @@ class FirestoreService {
   static const String _childrenCollection = 'children';
   static const String _tasksCollection = 'tasks';
   static const String _starLossesCollection = 'star_losses';
+  static const String _rewardsCollection = 'rewards';
+  static const String _sanctionsCollection = 'sanctions';
+  static const String _rewardExchangesCollection = 'reward_exchanges';
+  static const String _sanctionsAppliedCollection = 'sanctions_applied';
 
   // Parent operations
   Future<void> createParent(Parent parent) async {
@@ -300,6 +308,193 @@ class FirestoreService {
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => StarLoss.fromMap(doc.data()))
+            .toList());
+  }
+
+  // Reward operations
+  Future<void> createReward(Reward reward) async {
+    final docRef = await _firestore
+        .collection(_rewardsCollection)
+        .add(reward.toMap());
+    await docRef.update({'id': docRef.id});
+  }
+
+  Future<List<Reward>> getRewardsByParentId(String parentId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_rewardsCollection)
+          .where('parentId', isEqualTo: parentId)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => Reward.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting rewards: $e');
+      return [];
+    }
+  }
+
+  Future<void> updateReward(Reward reward) async {
+    await _firestore
+        .collection(_rewardsCollection)
+        .doc(reward.id)
+        .update(reward.toMap());
+  }
+
+  Future<void> deleteReward(String id) async {
+    await _firestore
+        .collection(_rewardsCollection)
+        .doc(id)
+        .delete();
+  }
+
+  Stream<List<Reward>> getRewardsStreamByParentId(String parentId) {
+    return _firestore
+        .collection(_rewardsCollection)
+        .where('parentId', isEqualTo: parentId)
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Reward.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  // Sanction operations
+  Future<void> createSanction(Sanction sanction) async {
+    final docRef = await _firestore
+        .collection(_sanctionsCollection)
+        .add(sanction.toMap());
+    await docRef.update({'id': docRef.id});
+  }
+
+  Future<List<Sanction>> getSanctionsByParentId(String parentId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_sanctionsCollection)
+          .where('parentId', isEqualTo: parentId)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => Sanction.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting sanctions: $e');
+      return [];
+    }
+  }
+
+  Future<void> updateSanction(Sanction sanction) async {
+    await _firestore
+        .collection(_sanctionsCollection)
+        .doc(sanction.id)
+        .update(sanction.toMap());
+  }
+
+  Future<void> deleteSanction(String id) async {
+    await _firestore
+        .collection(_sanctionsCollection)
+        .doc(id)
+        .delete();
+  }
+
+  Stream<List<Sanction>> getSanctionsStreamByParentId(String parentId) {
+    return _firestore
+        .collection(_sanctionsCollection)
+        .where('parentId', isEqualTo: parentId)
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Sanction.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  // Reward Exchange operations
+  Future<void> createRewardExchange(RewardExchange exchange) async {
+    final docRef = await _firestore
+        .collection(_rewardExchangesCollection)
+        .add(exchange.toMap());
+    await docRef.update({'id': docRef.id});
+  }
+
+  Future<List<RewardExchange>> getRewardExchangesByChildId(String childId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_rewardExchangesCollection)
+          .where('childId', isEqualTo: childId)
+          .orderBy('exchangedAt', descending: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => RewardExchange.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting reward exchanges: $e');
+      return [];
+    }
+  }
+
+  Future<void> markRewardExchangeCompleted(String exchangeId) async {
+    await _firestore
+        .collection(_rewardExchangesCollection)
+        .doc(exchangeId)
+        .update({'isCompleted': true});
+  }
+
+  Stream<List<RewardExchange>> getRewardExchangesStreamByChildId(String childId) {
+    return _firestore
+        .collection(_rewardExchangesCollection)
+        .where('childId', isEqualTo: childId)
+        .orderBy('exchangedAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => RewardExchange.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  // Sanction Applied operations
+  Future<void> createSanctionApplied(SanctionApplied sanction) async {
+    final docRef = await _firestore
+        .collection(_sanctionsAppliedCollection)
+        .add(sanction.toMap());
+    await docRef.update({'id': docRef.id});
+  }
+
+  Future<List<SanctionApplied>> getSanctionsAppliedByChildId(String childId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_sanctionsAppliedCollection)
+          .where('childId', isEqualTo: childId)
+          .orderBy('appliedAt', descending: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => SanctionApplied.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting sanctions applied: $e');
+      return [];
+    }
+  }
+
+  Future<void> deactivateSanctionApplied(String sanctionId) async {
+    await _firestore
+        .collection(_sanctionsAppliedCollection)
+        .doc(sanctionId)
+        .update({'isActive': false});
+  }
+
+  Stream<List<SanctionApplied>> getSanctionsAppliedStreamByChildId(String childId) {
+    return _firestore
+        .collection(_sanctionsAppliedCollection)
+        .where('childId', isEqualTo: childId)
+        .where('isActive', isEqualTo: true)
+        .orderBy('appliedAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => SanctionApplied.fromMap(doc.data(), doc.id))
             .toList());
   }
 }

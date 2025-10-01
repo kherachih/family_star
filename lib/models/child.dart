@@ -10,7 +10,7 @@ class Child {
   final String? photoUrl; // Deprecated - gardé pour compatibilité
   final String gender; // 'boy' ou 'girl'
   final int avatarIndex; // Index de l'avatar dans la liste
-  final int totalStars;
+  final int stars;
   final int birthdayStars;
   final List<String> objectives;
   final DateTime createdAt;
@@ -25,7 +25,7 @@ class Child {
     this.photoUrl,
     this.gender = 'boy',
     this.avatarIndex = 0,
-    this.totalStars = 0,
+    this.stars = 0,
     this.birthdayStars = 10,
     this.objectives = const [],
     required this.createdAt,
@@ -49,7 +49,7 @@ class Child {
       photoUrl: map['photoUrl'] as String?,
       gender: map['gender'] as String? ?? 'boy',
       avatarIndex: map['avatarIndex'] as int? ?? 0,
-      totalStars: map['totalStars'] as int? ?? 0,
+      stars: map['stars'] as int? ?? 0,
       birthdayStars: map['birthdayStars'] as int? ?? 10,
       objectives: List<String>.from(map['objectives'] ?? []),
       createdAt: map['createdAt'] is String
@@ -71,7 +71,7 @@ class Child {
       'photoUrl': photoUrl,
       'gender': gender,
       'avatarIndex': avatarIndex,
-      'totalStars': totalStars,
+      'stars': stars,
       'birthdayStars': birthdayStars,
       'objectives': objectives,
       'createdAt': createdAt.toIso8601String(),
@@ -88,7 +88,7 @@ class Child {
     String? photoUrl,
     String? gender,
     int? avatarIndex,
-    int? totalStars,
+    int? stars,
     int? birthdayStars,
     List<String>? objectives,
     DateTime? createdAt,
@@ -103,7 +103,7 @@ class Child {
       photoUrl: photoUrl ?? this.photoUrl,
       gender: gender ?? this.gender,
       avatarIndex: avatarIndex ?? this.avatarIndex,
-      totalStars: totalStars ?? this.totalStars,
+      stars: stars ?? this.stars,
       birthdayStars: birthdayStars ?? this.birthdayStars,
       objectives: objectives ?? this.objectives,
       createdAt: createdAt ?? this.createdAt,

@@ -62,28 +62,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Logo et titre
-                    const Icon(
-                      Icons.star,
-                      size: 80,
-                      color: Colors.amber,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Family Star',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.deepPurple,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Système d\'étoiles pour enfants',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                    // Logo
+                    Image.asset(
+                      'assets/logo.png',
+                      height: 150,
                     ),
                     const SizedBox(height: 48),
 

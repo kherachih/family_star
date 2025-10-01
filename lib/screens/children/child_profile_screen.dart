@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/child.dart';
 import '../../models/task.dart';
+import '../../models/sanction.dart';
 import '../../providers/children_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/rewards_provider.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/app_colors.dart';
+import '../rewards/rewards_catalog_screen.dart';
 
 class ChildProfileScreen extends StatefulWidget {
   final Child child;
@@ -229,17 +233,24 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Photo de profil (Avatar)
+                  // Photo de profil (Avatar) avec dégradé
                   Container(
-                    width: 120,
-                    height: 120,
+                    width: 130,
+                    height: 130,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.deepPurple[100],
-                      border: Border.all(
-                        color: Colors.deepPurple,
-                        width: 3,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: AppColors.gradientHero,
                       ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
                     ),
                     child: Center(
                       child: Text(
@@ -250,40 +261,76 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Compteur d'étoiles
+                  // Compteur d'étoiles avec dégradé
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
                     decoration: BoxDecoration(
-                      color: currentChild.totalStars < 0 ? Colors.red[50] : Colors.amber[50],
-                      borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: currentChild.stars < 0
+                            ? [
+                                AppColors.starNegative.withOpacity(0.2),
+                                AppColors.starNegative.withOpacity(0.1),
+                              ]
+                            : [
+                                AppColors.starPositive.withOpacity(0.2),
+                                AppColors.starPositive.withOpacity(0.1),
+                              ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: currentChild.totalStars < 0 ? Colors.red[200]! : Colors.amber[200]!,
+                        color: currentChild.stars < 0
+                            ? AppColors.starNegative.withOpacity(0.3)
+                            : AppColors.starPositive.withOpacity(0.3),
+                        width: 2,
                       ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.star,
-                          color: currentChild.totalStars < 0 ? Colors.red : Colors.amber,
-                          size: 32,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${currentChild.totalStars}',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: currentChild.totalStars < 0 ? Colors.red : Colors.amber,
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: (currentChild.stars < 0
+                                    ? AppColors.starNegative
+                                    : AppColors.starPositive)
+                                .withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.star_rounded,
+                            color: currentChild.stars < 0
+                                ? AppColors.starNegative
+                                : AppColors.starPositive,
+                            size: 36,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          currentChild.totalStars.abs() <= 1 ? 'étoile' : 'étoiles',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: currentChild.totalStars < 0 ? Colors.red : Colors.amber,
-                          ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${currentChild.stars}',
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: currentChild.stars < 0
+                                    ? AppColors.starNegative
+                                    : AppColors.starPositive,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Text(
+                              currentChild.stars.abs() <= 1 ? 'étoile' : 'étoiles',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: currentChild.stars < 0
+                                    ? AppColors.starNegative
+                                    : AppColors.starPositive,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -432,48 +479,170 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
                             const SizedBox(height: 12),
 
                             // Bouton vert - Tâches positives
-                            ElevatedButton.icon(
-                              onPressed: () => _showTaskSelectionDialog(TaskType.positive),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: AppColors.gradientTertiary,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.taskPositive.withOpacity(0.3),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _showTaskSelectionDialog(TaskType.positive),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.3),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.add_circle_rounded,
+                                            size: 24,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        const Expanded(
+                                          child: Text(
+                                            'Ajouter des étoiles',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.arrow_forward_ios_rounded,
+                                          size: 18,
+                                          color: Colors.white70,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
-                              icon: const Icon(Icons.add_circle, size: 28),
-                              label: const Text(
-                                'Ajouter des étoiles (Tâches +)',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Bouton rouge - Tâches négatives
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: AppColors.gradientPrimary,
                                 ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.taskNegative.withOpacity(0.3),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _showTaskSelectionDialog(TaskType.negative),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.3),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.remove_circle_rounded,
+                                            size: 24,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        const Expanded(
+                                          child: Text(
+                                            'Enlever des étoiles',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.arrow_forward_ios_rounded,
+                                          size: 18,
+                                          color: Colors.white70,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Bouton Récompenses
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => RewardsCatalogScreen(child: currentChild),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.card_giftcard),
+                              label: const Text('Voir les récompenses'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
                               ),
                             ),
 
                             const SizedBox(height: 12),
 
-                            // Bouton rouge - Tâches négatives
-                            ElevatedButton.icon(
-                              onPressed: () => _showTaskSelectionDialog(TaskType.negative),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                            // Bouton Sanctions (si étoiles négatives)
+                            if (currentChild.stars < 0)
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  _showSanctionsDialog(currentChild);
+                                },
+                                icon: const Icon(Icons.block),
+                                label: const Text('Appliquer une sanction'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
                                 ),
                               ),
-                              icon: const Icon(Icons.remove_circle, size: 28),
-                              label: const Text(
-                                'Enlever des étoiles (Actions -)',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -486,5 +655,114 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
         );
       },
     );
+  }
+
+  void _showSanctionsDialog(Child child) async {
+    final rewardsProvider = Provider.of<RewardsProvider>(context, listen: false);
+    await rewardsProvider.loadSanctions(child.parentId);
+
+    if (!mounted) return;
+
+    final sanctions = rewardsProvider.sanctions
+        .where((s) => child.stars <= -s.starsCost)
+        .toList();
+
+    if (sanctions.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aucune sanction disponible pour ce niveau d\'étoiles'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final selectedSanction = await showDialog<Sanction>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Appliquer une sanction'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: sanctions.length,
+            itemBuilder: (context, index) {
+              final sanction = sanctions[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.red,
+                    child: Icon(Icons.block, color: Colors.white),
+                  ),
+                  title: Text(sanction.name),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(sanction.description),
+                      if (sanction.duration != null)
+                        Text(
+                          'Durée: ${sanction.duration}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                    ],
+                  ),
+                  trailing: Text(
+                    '-${sanction.starsCost} ⭐',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                  onTap: () => Navigator.pop(context, sanction),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedSanction != null && mounted) {
+      await _applySanction(child, selectedSanction);
+    }
+  }
+
+  Future<void> _applySanction(Child child, Sanction sanction) async {
+    final rewardsProvider = Provider.of<RewardsProvider>(context, listen: false);
+    final childrenProvider = Provider.of<ChildrenProvider>(context, listen: false);
+
+    final success = await rewardsProvider.applySanction(
+      child,
+      sanction,
+      (updatedChild) async {
+        await childrenProvider.updateChild(updatedChild);
+      },
+    );
+
+    if (mounted) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sanction "${sanction.name}" appliquée. Étoiles remises à 0.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(rewardsProvider.error ?? 'Erreur lors de l\'application de la sanction'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

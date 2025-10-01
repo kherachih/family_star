@@ -241,7 +241,7 @@ class _ChildrenManagementScreenState extends State<ChildrenManagementScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${child.totalStars} étoiles',
+                            '${child.stars} étoiles',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.amber,
