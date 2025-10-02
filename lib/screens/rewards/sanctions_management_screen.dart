@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/rewards_provider.dart';
 import '../../models/sanction.dart';
+import 'add_sanction_screen.dart';
 
 class SanctionsManagementScreen extends StatefulWidget {
   const SanctionsManagementScreen({super.key});
@@ -79,13 +80,13 @@ class _SanctionsManagementScreenState extends State<SanctionsManagementScreen> {
                           children: [
                             Text(sanction.description),
                             const SizedBox(height: 4),
-                            if (sanction.duration != null)
+                            if (sanction.durationText != null)
                               Row(
                                 children: [
                                   const Icon(Icons.access_time, size: 16, color: Colors.grey),
                                   const SizedBox(width: 4),
                                   Text(
-                                    sanction.duration!,
+                                    sanction.durationText!,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.grey,
@@ -134,7 +135,7 @@ class _SanctionsManagementScreenState extends State<SanctionsManagementScreen> {
                           ],
                           onSelected: (value) {
                             if (value == 'edit') {
-                              _showSanctionDialog(sanction: sanction);
+                              _navigateToAddSanctionScreen(sanction: sanction);
                             } else if (value == 'delete') {
                               _confirmDelete(sanction);
                             }
@@ -145,7 +146,7 @@ class _SanctionsManagementScreenState extends State<SanctionsManagementScreen> {
                   },
                 ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showSanctionDialog(),
+        onPressed: () => _navigateToAddSanctionScreen(),
         backgroundColor: Colors.red,
         icon: const Icon(Icons.add),
         label: const Text('Ajouter une sanction'),
@@ -153,118 +154,16 @@ class _SanctionsManagementScreenState extends State<SanctionsManagementScreen> {
     );
   }
 
-  void _showSanctionDialog({Sanction? sanction}) {
-    final nameController = TextEditingController(text: sanction?.name ?? '');
-    final descriptionController = TextEditingController(text: sanction?.description ?? '');
-    final starsCostController = TextEditingController(
-      text: sanction?.starsCost.toString() ?? '',
-    );
-    final durationController = TextEditingController(text: sanction?.duration ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(sanction == null ? 'Nouvelle Sanction' : 'Modifier la Sanction'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nom de la sanction',
-                  border: OutlineInputBorder(),
-                  hintText: 'Ex: Pas de téléphone',
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                  hintText: 'Ex: Confiscation du téléphone',
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: starsCostController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre d\'étoiles négatives requises',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.star, color: Colors.red),
-                  hintText: 'Ex: 10 pour -10 étoiles',
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: durationController,
-                decoration: const InputDecoration(
-                  labelText: 'Durée (optionnel)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.access_time),
-                  hintText: 'Ex: 1 semaine, 3 jours',
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty ||
-                  descriptionController.text.isEmpty ||
-                  starsCostController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Veuillez remplir tous les champs requis')),
-                );
-                return;
-              }
-
-              final authProvider = context.read<AuthProvider>();
-              final rewardsProvider = context.read<RewardsProvider>();
-
-              final newSanction = Sanction(
-                id: sanction?.id,
-                parentId: authProvider.currentUser!.id,
-                name: nameController.text,
-                description: descriptionController.text,
-                starsCost: int.parse(starsCostController.text),
-                duration: durationController.text.isNotEmpty ? durationController.text : null,
-              );
-
-              try {
-                if (sanction == null) {
-                  await rewardsProvider.addSanction(newSanction);
-                } else {
-                  await rewardsProvider.updateSanction(newSanction);
-                }
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(sanction == null
-                        ? 'Sanction ajoutée avec succès'
-                        : 'Sanction modifiée avec succès'),
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Erreur: $e')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text(sanction == null ? 'Ajouter' : 'Modifier'),
-          ),
-        ],
+  void _navigateToAddSanctionScreen({Sanction? sanction}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddSanctionScreen(sanction: sanction),
       ),
-    );
+    ).then((_) {
+      // Recharger les sanctions après le retour de l'écran d'ajout/modification
+      _loadSanctions();
+    });
   }
 
   void _confirmDelete(Sanction sanction) {

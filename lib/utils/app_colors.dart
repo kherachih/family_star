@@ -14,6 +14,10 @@ class AppColors {
   // Couleurs pour les étoiles
   static const Color starPositive = Color(0xFFFFD93D); // Jaune doré
   static const Color starNegative = Color(0xFFFF6B6B); // Rouge
+  
+  // Couleurs de fond pour les badges d'étoiles
+  static const Color starPositiveBackgroundDark = Color(0xFF4A4A4A); // Gris foncé pour étoiles positives
+  static const Color starPositiveBackgroundLight = Color(0xFF6A6A6A); // Gris clair pour étoiles positives
 
   // Couleurs pour les tâches
   static const Color taskPositive = Color(0xFF6BCB77); // Vert

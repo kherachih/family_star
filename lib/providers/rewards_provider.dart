@@ -5,6 +5,7 @@ import '../models/reward_exchange.dart';
 import '../models/sanction_applied.dart';
 import '../models/child.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
 
 class RewardsProvider with ChangeNotifier {
   final FirestoreService _firestoreService = FirestoreService();
@@ -213,16 +214,52 @@ class RewardsProvider with ChangeNotifier {
     }
 
     try {
+      // Calculer la date de fin si une durée est spécifiée
+      DateTime? endsAt;
+      if (sanction.durationValue != null && sanction.durationUnit != null) {
+        final durationInHours = sanction.durationInHours;
+        if (durationInHours != null) {
+          endsAt = DateTime.now().add(Duration(hours: durationInHours));
+        }
+      }
+
       // Créer la sanction appliquée
       final appliedSanction = SanctionApplied(
         childId: child.id,
         sanctionId: sanction.id ?? '',
         sanctionName: sanction.name,
         starsCost: sanction.starsCost,
-        duration: sanction.duration,
+        durationValue: sanction.durationValue,
+        durationUnit: sanction.durationUnit,
+        endsAt: endsAt,
       );
 
       await _firestoreService.createSanctionApplied(appliedSanction);
+
+      // Planifier une notification pour la fin de la sanction
+      if (endsAt != null) {
+        try {
+          final notificationService = NotificationService();
+          await notificationService.init();
+          
+          // Générer un ID unique pour la notification
+          final notificationId = DateTime.now().millisecondsSinceEpoch % 100000;
+          
+          final notificationScheduled = await notificationService.scheduleSanctionEndNotification(
+            id: notificationId,
+            childName: child.name,
+            sanctionName: sanction.name,
+            endTime: endsAt,
+          );
+          
+          if (!notificationScheduled) {
+            debugPrint('La notification pour la fin de la sanction n\'a pas pu être planifiée, mais la sanction est toujours appliquée.');
+          }
+        } catch (e) {
+          debugPrint('Erreur lors de la planification de la notification: $e');
+          // Ne pas bloquer l'application si la notification échoue
+        }
+      }
 
       // Ajouter les étoiles pour réduire les étoiles négatives (remettre à 0 si égal)
       final newStars = child.stars + sanction.starsCost;
@@ -242,6 +279,22 @@ class RewardsProvider with ChangeNotifier {
 
   Future<void> deactivateSanction(String sanctionId) async {
     try {
+      // Récupérer la sanction appliquée pour pouvoir annuler la notification
+      final sanctionApplied = _sanctionsApplied.firstWhere(
+        (s) => s.id == sanctionId,
+        orElse: () => throw Exception('Sanction not found'),
+      );
+
+      // Annuler la notification si elle existe
+      if (sanctionApplied.endsAt != null) {
+        final notificationService = NotificationService();
+        await notificationService.init();
+        
+        // Utiliser le même ID que lors de la création de la notification
+        final notificationId = sanctionApplied.appliedAt.millisecondsSinceEpoch % 100000;
+        await notificationService.cancelNotification(notificationId);
+      }
+
       await _firestoreService.deactivateSanctionApplied(sanctionId);
       notifyListeners();
     } catch (e) {

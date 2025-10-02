@@ -8,6 +8,8 @@ import '../../models/reward.dart';
 import '../../models/sanction.dart';
 import '../../services/firestore_service.dart';
 import 'add_task_screen.dart';
+import '../rewards/add_reward_screen.dart';
+import '../rewards/add_sanction_screen.dart';
 
 class TasksTab extends StatefulWidget {
   const TasksTab({super.key});
@@ -87,7 +89,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                     ),
                   ),
                   child: const Padding(
-                    padding: EdgeInsets.only(left: 24, right: 24, bottom: 60, top: 80),
+                    padding: EdgeInsets.only(left: 24, right: 24, bottom: 60, top: 60),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -112,8 +114,8 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                 controller: _tabController,
                 indicatorColor: Colors.white,
                 indicatorWeight: 3,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white70,
+                labelColor: AppColors.textPrimary,
+                unselectedLabelColor: AppColors.textSecondary,
                 labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 tabs: const [
                   Tab(text: 'Tâches'),
@@ -186,7 +188,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
             title: 'Aucune récompense',
             subtitle: 'Créez des récompenses pour motiver vos enfants',
             buttonText: 'Créer une récompense',
-            onPressed: () => _showRewardDialog(),
+            onPressed: () => _navigateToAddRewardScreen(),
             color: Colors.amber,
           );
         }
@@ -202,7 +204,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                   label: 'Créer une récompense',
                   icon: Icons.add,
                   gradient: [Colors.amber[600]!, Colors.amber[400]!],
-                  onTap: () => _showRewardDialog(),
+                  onTap: () => _navigateToAddRewardScreen(),
                 ),
               );
             }
@@ -228,7 +230,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
             title: 'Aucune sanction',
             subtitle: 'Créez des sanctions pour les étoiles négatives',
             buttonText: 'Créer une sanction',
-            onPressed: () => _showSanctionDialog(),
+            onPressed: () => _navigateToAddSanctionScreen(),
             color: Colors.red,
           );
         }
@@ -244,7 +246,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                   label: 'Créer une sanction',
                   icon: Icons.add,
                   gradient: AppColors.gradientPrimary,
-                  onTap: () => _showSanctionDialog(),
+                  onTap: () => _navigateToAddSanctionScreen(),
                 ),
               );
             }
@@ -363,28 +365,191 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   }
 
   Widget _buildTaskCard(Task task) {
+    // Vérifier si la tâche quotidienne a été complétée aujourd'hui
+    bool isCompletedToday = false;
+    if (task.isDaily && task.lastCompletedAt != null) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final lastCompletedDate = DateTime(
+        task.lastCompletedAt!.year,
+        task.lastCompletedAt!.month,
+        task.lastCompletedAt!.day,
+      );
+      isCompletedToday = lastCompletedDate == today;
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: isCompletedToday ? Colors.grey[100] : null,
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: task.type == TaskType.positive ? Colors.green[100] : Colors.red[100],
+          backgroundColor: isCompletedToday
+              ? Colors.grey[300]
+              : task.type == TaskType.positive ? Colors.green[100] : Colors.red[100],
           child: Icon(
             task.type == TaskType.positive ? Icons.add_circle : Icons.remove_circle,
-            color: task.type == TaskType.positive ? Colors.green : Colors.red,
+            color: isCompletedToday
+                ? Colors.grey[600]
+                : task.type == TaskType.positive ? Colors.green : Colors.red,
           ),
         ),
-        title: Text(task.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: task.description != null ? Text(task.description!) : null,
-        trailing: Text(
-          '${task.type == TaskType.positive ? "+" : "-"}${task.stars} ⭐',
+        title: Text(
+          task.title,
           style: TextStyle(
-            fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: task.type == TaskType.positive ? Colors.green : Colors.red,
+            color: isCompletedToday ? Colors.grey[600] : null,
           ),
         ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (task.description != null)
+              Text(
+                task.description!,
+                style: TextStyle(
+                  color: isCompletedToday ? Colors.grey[500] : null,
+                ),
+              ),
+            if (task.isDaily)
+              Text(
+                'Tâche quotidienne${isCompletedToday ? ' - Complétée aujourd\'hui' : ''}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isCompletedToday ? Colors.grey[500] : Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+          ],
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) async {
+            if (value == 'edit') {
+              await _navigateToEditTask(task);
+            } else if (value == 'delete') {
+              await _deleteTask(task);
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'edit',
+              child: Row(
+                children: [
+                  Icon(Icons.edit),
+                  SizedBox(width: 8),
+                  Text('Modifier'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Supprimer', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        onTap: isCompletedToday ? null : () => _showTaskDetails(task),
       ),
     );
+  }
+
+  void _showTaskDetails(Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(task.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (task.description != null) ...[
+              Text(task.description!),
+              const SizedBox(height: 16),
+            ],
+            Text(
+              'Type: ${task.type == TaskType.positive ? 'Positif' : 'Négatif'}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Étoiles: ${task.type == TaskType.positive ? "+" : "-"}${task.stars}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            if (task.isDaily)
+              Text(
+                'Tâche quotidienne: Oui',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _navigateToEditTask(Task task) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddTaskScreen(task: task),
+      ),
+    );
+    if (result == true) {
+      _loadTasks();
+    }
+  }
+
+  Future<void> _deleteTask(Task task) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmer la suppression'),
+        content: Text('Êtes-vous sûr de vouloir supprimer la tâche "${task.title}" ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await FirestoreService().deleteTask(task.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tâche supprimée avec succès'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _loadTasks();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur lors de la suppression: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildRewardCard(Reward reward) {
@@ -405,7 +570,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
             color: Colors.amber,
           ),
         ),
-        onTap: () => _showRewardDialog(reward: reward),
+        onTap: () => _navigateToAddRewardScreen(reward: reward),
       ),
     );
   }
@@ -423,9 +588,9 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(sanction.description),
-            if (sanction.duration != null)
+            if (sanction.durationText != null)
               Text(
-                'Durée: ${sanction.duration}',
+                'Durée: ${sanction.durationText}',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
               ),
           ],
@@ -438,7 +603,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
             color: Colors.red,
           ),
         ),
-        onTap: () => _showSanctionDialog(sanction: sanction),
+        onTap: () => _navigateToAddSanctionScreen(sanction: sanction),
       ),
     );
   }
@@ -453,220 +618,27 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     }
   }
 
-  void _showRewardDialog({Reward? reward}) {
-    final nameController = TextEditingController(text: reward?.name ?? '');
-    final descriptionController = TextEditingController(text: reward?.description ?? '');
-    final starsCostController = TextEditingController(
-      text: reward?.starsCost.toString() ?? '',
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(reward == null ? 'Nouvelle Récompense' : 'Modifier la Récompense'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nom de la récompense',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: starsCostController,
-                decoration: const InputDecoration(
-                  labelText: 'Coût en étoiles',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.star, color: Colors.amber),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty ||
-                  descriptionController.text.isEmpty ||
-                  starsCostController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Veuillez remplir tous les champs')),
-                );
-                return;
-              }
-
-              final authProvider = context.read<AuthProvider>();
-              final rewardsProvider = context.read<RewardsProvider>();
-
-              final newReward = Reward(
-                id: reward?.id,
-                parentId: authProvider.currentUser!.id,
-                name: nameController.text,
-                description: descriptionController.text,
-                starsCost: int.parse(starsCostController.text),
-              );
-
-              try {
-                if (reward == null) {
-                  await rewardsProvider.addReward(newReward);
-                } else {
-                  await rewardsProvider.updateReward(newReward);
-                }
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(reward == null
-                          ? 'Récompense ajoutée avec succès'
-                          : 'Récompense modifiée avec succès'),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erreur: $e')),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
-            child: Text(reward == null ? 'Ajouter' : 'Modifier'),
-          ),
-        ],
+  Future<void> _navigateToAddRewardScreen({Reward? reward}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddRewardScreen(reward: reward),
       ),
     );
+    if (result == true) {
+      _loadRewardsAndSanctions();
+    }
   }
 
-  void _showSanctionDialog({Sanction? sanction}) {
-    final nameController = TextEditingController(text: sanction?.name ?? '');
-    final descriptionController = TextEditingController(text: sanction?.description ?? '');
-    final starsCostController = TextEditingController(
-      text: sanction?.starsCost.toString() ?? '',
-    );
-    final durationController = TextEditingController(text: sanction?.duration ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(sanction == null ? 'Nouvelle Sanction' : 'Modifier la Sanction'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nom de la sanction',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: starsCostController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre d\'étoiles négatives requises',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.star, color: Colors.red),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: durationController,
-                decoration: const InputDecoration(
-                  labelText: 'Durée (optionnel)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.access_time),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty ||
-                  descriptionController.text.isEmpty ||
-                  starsCostController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Veuillez remplir tous les champs requis')),
-                );
-                return;
-              }
-
-              final authProvider = context.read<AuthProvider>();
-              final rewardsProvider = context.read<RewardsProvider>();
-
-              final newSanction = Sanction(
-                id: sanction?.id,
-                parentId: authProvider.currentUser!.id,
-                name: nameController.text,
-                description: descriptionController.text,
-                starsCost: int.parse(starsCostController.text),
-                duration: durationController.text.isNotEmpty ? durationController.text : null,
-              );
-
-              try {
-                if (sanction == null) {
-                  await rewardsProvider.addSanction(newSanction);
-                } else {
-                  await rewardsProvider.updateSanction(newSanction);
-                }
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(sanction == null
-                          ? 'Sanction ajoutée avec succès'
-                          : 'Sanction modifiée avec succès'),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erreur: $e')),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text(sanction == null ? 'Ajouter' : 'Modifier'),
-          ),
-        ],
+  Future<void> _navigateToAddSanctionScreen({Sanction? sanction}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddSanctionScreen(sanction: sanction),
       ),
     );
+    if (result == true) {
+      _loadRewardsAndSanctions();
+    }
   }
 }

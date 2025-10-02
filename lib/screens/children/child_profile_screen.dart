@@ -1,14 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/child.dart';
 import '../../models/task.dart';
 import '../../models/sanction.dart';
+import '../../models/sanction_applied.dart';
 import '../../providers/children_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/rewards_provider.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/app_colors.dart';
 import '../rewards/rewards_catalog_screen.dart';
+import 'sanctions_applied_screen.dart';
 
 class ChildProfileScreen extends StatefulWidget {
   final Child child;
@@ -24,16 +27,21 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _ageController;
   bool _isEditing = false;
+  Timer? _timer;
+  List<SanctionApplied> _activeSanctions = [];
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.child.name);
     _ageController = TextEditingController(text: widget.child.age.toString());
+    _loadActiveSanctions();
+    _startTimer();
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _nameController.dispose();
     _ageController.dispose();
     super.dispose();
@@ -70,6 +78,33 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
         // Annuler les modifications
         _nameController.text = widget.child.name;
         _ageController.text = widget.child.age.toString();
+      }
+    });
+  }
+
+  void _loadActiveSanctions() async {
+    final rewardsProvider = Provider.of<RewardsProvider>(context, listen: false);
+    await rewardsProvider.loadSanctionsApplied(widget.child.id);
+    
+    // Mettre à jour la liste des sanctions actives après le chargement
+    if (mounted) {
+      setState(() {
+        _activeSanctions = rewardsProvider.sanctionsApplied
+            .where((s) => s.isActive && !s.isExpired)
+            .toList();
+      });
+    }
+  }
+
+  void _startTimer() {
+    // Mettre à jour l'interface toutes les minutes pour le compte à rebours
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) {
+        // Mettre à jour seulement l'interface pour le compte à rebours
+        // sans recharger les données depuis Firestore
+        setState(() {
+          // La liste _activeSanctions reste la même, mais le temps restant est recalculé
+        });
       }
     });
   }
@@ -335,6 +370,89 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 32),
+
+                  // Section des sanctions actives
+                  if (_activeSanctions.isNotEmpty) ...[
+                    Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Colors.red, width: 2),
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.red.withOpacity(0.05),
+                              Colors.red.withOpacity(0.02),
+                            ],
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // En-tête de la section
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(12),
+                                  topRight: Radius.circular(12),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.warning, color: Colors.white, size: 24),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Text(
+                                      'Sanctions actives',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${_activeSanctions.length}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Liste des sanctions actives
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: _activeSanctions.map((sanction) {
+                                  return _buildActiveSanctionCard(sanction);
+                                }).toList(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
                   const SizedBox(height: 32),
 
                   // Informations du profil
@@ -643,6 +761,27 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
                                   padding: const EdgeInsets.symmetric(vertical: 14),
                                 ),
                               ),
+
+                            const SizedBox(height: 12),
+
+                            // Bouton pour voir les sanctions actives
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => SanctionsAppliedScreen(child: currentChild),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.history),
+                              label: const Text('Voir les sanctions actives'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -700,9 +839,9 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(sanction.description),
-                      if (sanction.duration != null)
+                      if (sanction.durationText != null)
                         Text(
-                          'Durée: ${sanction.duration}',
+                          'Durée: ${sanction.durationText}',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                     ],
@@ -749,6 +888,19 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
 
     if (mounted) {
       if (success) {
+        // Attendre un peu que Firestore mette à jour les données
+        await Future.delayed(const Duration(milliseconds: 1000));
+        
+        // Recharger les sanctions depuis Firestore
+        await rewardsProvider.loadSanctionsApplied(widget.child.id);
+        
+        // Mettre à jour la liste des sanctions actives
+        setState(() {
+          _activeSanctions = rewardsProvider.sanctionsApplied
+              .where((s) => s.isActive && !s.isExpired)
+              .toList();
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Sanction "${sanction.name}" appliquée. Étoiles remises à 0.'),
@@ -759,6 +911,202 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(rewardsProvider.error ?? 'Erreur lors de l\'application de la sanction'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildActiveSanctionCard(SanctionApplied sanction) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: sanction.timeRemaining != null && sanction.timeRemaining!.inHours < 24
+              ? Colors.red
+              : Colors.orange,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          // En-tête avec nom de la sanction
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: const BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.block, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    sanction.sanctionName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '-${sanction.starsCost} ⭐',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Contenu avec compte à rebours
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Compte à rebours
+                if (sanction.timeRemaining != null)
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _getTimeRemainingColor(sanction.timeRemaining!).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: _getTimeRemainingColor(sanction.timeRemaining!),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Temps restant:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          sanction.timeRemainingText ?? 'Terminé',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: _getTimeRemainingColor(sanction.timeRemaining!),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: 8),
+
+                // Bouton pour terminer la sanction
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _confirmEndSanction(sanction),
+                    icon: const Icon(Icons.check_circle, size: 16),
+                    label: const Text('Terminer', style: TextStyle(fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getTimeRemainingColor(Duration remaining) {
+    if (remaining.inHours < 1) {
+      return Colors.red;
+    } else if (remaining.inHours < 24) {
+      return Colors.orange;
+    } else {
+      return Colors.blue;
+    }
+  }
+
+  void _confirmEndSanction(SanctionApplied sanction) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Terminer la sanction'),
+        content: Text(
+          'Voulez-vous vraiment terminer la sanction "${sanction.sanctionName}" avant la fin prévue ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _endSanction(sanction);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Terminer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _endSanction(SanctionApplied sanction) async {
+    try {
+      final rewardsProvider = Provider.of<RewardsProvider>(context, listen: false);
+      await rewardsProvider.deactivateSanction(sanction.id!);
+      
+      // Attendre un peu que Firestore mette à jour les données
+      await Future.delayed(const Duration(milliseconds: 1000));
+      
+      // Recharger les sanctions depuis Firestore
+      await rewardsProvider.loadSanctionsApplied(widget.child.id);
+      
+      if (mounted) {
+        // Mettre à jour la liste des sanctions actives
+        setState(() {
+          _activeSanctions = rewardsProvider.sanctionsApplied
+              .where((s) => s.isActive && !s.isExpired)
+              .toList();
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sanction terminée avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );

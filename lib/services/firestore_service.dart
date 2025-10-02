@@ -196,6 +196,29 @@ class FirestoreService {
     }
   }
 
+  Future<List<Task>> getDailyTasksByParentId(String parentId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_tasksCollection)
+          .where('parentId', isEqualTo: parentId)
+          .where('isDaily', isEqualTo: true)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final tasks = querySnapshot.docs
+          .map((doc) => Task.fromMap(doc.data()))
+          .toList();
+
+      // Trier par date de création décroissante
+      tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      return tasks;
+    } catch (e) {
+      debugPrint('Error getting daily tasks by parent: $e');
+      return [];
+    }
+  }
+
   Future<List<Task>> getTasksByChildId(String childId) async {
     try {
       final querySnapshot = await _firestore
@@ -492,6 +515,7 @@ class FirestoreService {
         .where('childId', isEqualTo: childId)
         .where('isActive', isEqualTo: true)
         .orderBy('appliedAt', descending: true)
+        .orderBy('__name__', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => SanctionApplied.fromMap(doc.data(), doc.id))

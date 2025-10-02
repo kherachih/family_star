@@ -18,6 +18,8 @@ class Task {
   final TaskType type; // Positif (+) ou Négatif (-)
   final int stars; // Nombre d'étoiles (toujours positif)
   final bool isActive; // Si la tâche est active ou archivée
+  final bool isDaily; // Si la tâche est quotidienne
+  final DateTime? lastCompletedAt; // Date de dernière complétion (pour les tâches quotidiennes)
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -30,6 +32,8 @@ class Task {
     required this.type,
     required this.stars,
     this.isActive = true,
+    this.isDaily = false,
+    this.lastCompletedAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -63,6 +67,12 @@ class Task {
       ),
       stars: map['stars'] as int,
       isActive: map['isActive'] as bool? ?? true,
+      isDaily: map['isDaily'] as bool? ?? false,
+      lastCompletedAt: map['lastCompletedAt'] != null
+          ? map['lastCompletedAt'] is String
+              ? DateTime.parse(map['lastCompletedAt'] as String)
+              : (map['lastCompletedAt'] as Timestamp).toDate()
+          : null,
       createdAt: map['createdAt'] is String
           ? DateTime.parse(map['createdAt'] as String)
           : (map['createdAt'] as Timestamp).toDate(),
@@ -82,6 +92,8 @@ class Task {
       'type': type.name,
       'stars': stars,
       'isActive': isActive,
+      'isDaily': isDaily,
+      'lastCompletedAt': lastCompletedAt?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -96,6 +108,8 @@ class Task {
     TaskType? type,
     int? stars,
     bool? isActive,
+    bool? isDaily,
+    DateTime? lastCompletedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -108,6 +122,8 @@ class Task {
       type: type ?? this.type,
       stars: stars ?? this.stars,
       isActive: isActive ?? this.isActive,
+      isDaily: isDaily ?? this.isDaily,
+      lastCompletedAt: lastCompletedAt ?? this.lastCompletedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

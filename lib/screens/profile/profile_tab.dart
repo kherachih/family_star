@@ -56,7 +56,7 @@ class ProfileTab extends StatelessWidget {
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 80),
+                  padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 60),
                   child: Consumer<AuthProvider>(
                     builder: (context, authProvider, child) {
                       return Column(

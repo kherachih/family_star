@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/rewards_provider.dart';
 import '../../models/reward.dart';
+import 'add_reward_screen.dart';
 
 class RewardsManagementScreen extends StatefulWidget {
   const RewardsManagementScreen({super.key});
@@ -119,7 +120,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen> {
                           ],
                           onSelected: (value) {
                             if (value == 'edit') {
-                              _showRewardDialog(reward: reward);
+                              _navigateToAddRewardScreen(reward: reward);
                             } else if (value == 'delete') {
                               _confirmDelete(reward);
                             }
@@ -130,7 +131,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen> {
                   },
                 ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showRewardDialog(),
+        onPressed: () => _navigateToAddRewardScreen(),
         backgroundColor: Colors.amber,
         icon: const Icon(Icons.add),
         label: const Text('Ajouter une récompense'),
@@ -138,103 +139,16 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen> {
     );
   }
 
-  void _showRewardDialog({Reward? reward}) {
-    final nameController = TextEditingController(text: reward?.name ?? '');
-    final descriptionController = TextEditingController(text: reward?.description ?? '');
-    final starsCostController = TextEditingController(
-      text: reward?.starsCost.toString() ?? '',
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(reward == null ? 'Nouvelle Récompense' : 'Modifier la Récompense'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nom de la récompense',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: starsCostController,
-                decoration: const InputDecoration(
-                  labelText: 'Coût en étoiles',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.star, color: Colors.amber),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty ||
-                  descriptionController.text.isEmpty ||
-                  starsCostController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Veuillez remplir tous les champs')),
-                );
-                return;
-              }
-
-              final authProvider = context.read<AuthProvider>();
-              final rewardsProvider = context.read<RewardsProvider>();
-
-              final newReward = Reward(
-                id: reward?.id,
-                parentId: authProvider.currentUser!.id,
-                name: nameController.text,
-                description: descriptionController.text,
-                starsCost: int.parse(starsCostController.text),
-              );
-
-              try {
-                if (reward == null) {
-                  await rewardsProvider.addReward(newReward);
-                } else {
-                  await rewardsProvider.updateReward(newReward);
-                }
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(reward == null
-                        ? 'Récompense ajoutée avec succès'
-                        : 'Récompense modifiée avec succès'),
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Erreur: $e')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
-            child: Text(reward == null ? 'Ajouter' : 'Modifier'),
-          ),
-        ],
+  void _navigateToAddRewardScreen({Reward? reward}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddRewardScreen(reward: reward),
       ),
-    );
+    ).then((_) {
+      // Recharger les récompenses après le retour de l'écran d'ajout/modification
+      _loadRewards();
+    });
   }
 
   void _confirmDelete(Reward reward) {

@@ -63,7 +63,7 @@ class _ChildrenTabState extends State<ChildrenTab> {
                         ),
                       ),
                       child: const Padding(
-                        padding: EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 80),
+                        padding: EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 60),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -328,8 +328,8 @@ class _ChildrenTabState extends State<ChildrenTab> {
                                     AppColors.starNegative.withOpacity(0.1),
                                   ]
                                 : [
-                                    AppColors.starPositive.withOpacity(0.2),
-                                    AppColors.starPositive.withOpacity(0.1),
+                                    AppColors.starPositiveBackgroundDark,
+                                    AppColors.starPositiveBackgroundLight,
                                   ],
                           ),
                           borderRadius: BorderRadius.circular(12),

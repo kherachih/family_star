@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/children_provider.dart';
 import '../../models/child.dart';
+import '../../models/task.dart';
+import '../../services/firestore_service.dart';
 import '../../utils/app_colors.dart';
 import '../children/child_profile_screen.dart';
 
@@ -14,6 +16,9 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
+  List<Task> _dailyTasks = [];
+  bool _isLoadingTasks = false;
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +33,36 @@ class _HomeTabState extends State<HomeTab> {
 
     if (authProvider.currentUser != null) {
       await childrenProvider.loadChildren(authProvider.currentUser!.id);
+      await _loadDailyTasks(authProvider.currentUser!.id);
+    }
+  }
+
+  Future<void> _loadDailyTasks(String parentId) async {
+    setState(() => _isLoadingTasks = true);
+    try {
+      final dailyTasks = await FirestoreService().getDailyTasksByParentId(parentId);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      
+      // Filtrer les tâches quotidiennes pour n'afficher que celles non complétées aujourd'hui
+      final filteredTasks = dailyTasks.where((task) {
+        if (task.lastCompletedAt == null) return true;
+        
+        final lastCompletedDate = DateTime(
+          task.lastCompletedAt!.year,
+          task.lastCompletedAt!.month,
+          task.lastCompletedAt!.day,
+        );
+        
+        // Si la tâche a été complétée aujourd'hui, ne pas l'afficher
+        return lastCompletedDate.isBefore(today);
+      }).toList();
+      
+      setState(() => _dailyTasks = filteredTasks);
+    } catch (e) {
+      debugPrint('Error loading daily tasks: $e');
+    } finally {
+      setState(() => _isLoadingTasks = false);
     }
   }
 
@@ -63,7 +98,7 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 80),
+                        padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 60),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -143,9 +178,9 @@ class _HomeTabState extends State<HomeTab> {
 
                         const SizedBox(height: 32),
 
-                        // Statistiques
+                        // Tâches quotidiennes
                         const Text(
-                          'Statistiques',
+                          'Tâches quotidiennes',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -154,27 +189,13 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                         const SizedBox(height: 16),
 
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _StatCard(
-                                icon: Icons.people_rounded,
-                                value: '${children.length}',
-                                label: children.length <= 1 ? 'Enfant' : 'Enfants',
-                                gradient: AppColors.gradientPrimary,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _StatCard(
-                                icon: Icons.star_rounded,
-                                value: '$totalStars',
-                                label: 'Étoiles total',
-                                gradient: AppColors.gradientSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
+                        _isLoadingTasks
+                            ? const Center(
+                                child: CircularProgressIndicator(),
+                              )
+                            : _dailyTasks.isEmpty
+                                ? _buildEmptyDailyTasksState()
+                                : _buildDailyTasksList(),
                       ],
                     ),
                   ),
@@ -320,8 +341,8 @@ class _HomeTabState extends State<HomeTab> {
                                     AppColors.starNegative.withOpacity(0.1),
                                   ]
                                 : [
-                                    AppColors.starPositive.withOpacity(0.2),
-                                    AppColors.starPositive.withOpacity(0.1),
+                                    AppColors.starPositiveBackgroundDark,
+                                    AppColors.starPositiveBackgroundLight,
                                   ],
                           ),
                           borderRadius: BorderRadius.circular(12),
@@ -370,6 +391,367 @@ class _HomeTabState extends State<HomeTab> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyDailyTasksState() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppColors.gradientSecondary.map((c) => c.withOpacity(0.1)).toList(),
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.secondary.withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.event_busy, size: 48, color: AppColors.secondary.withOpacity(0.5)),
+          const SizedBox(height: 12),
+          const Text(
+            'Pas de tâches quotidiennes',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Ajoutez des tâches quotidiennes dans l\'onglet Tâches',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDailyTasksList() {
+    return Column(
+      children: _dailyTasks.map((task) => _buildDailyTaskCard(task)).toList(),
+    );
+  }
+
+  Widget _buildDailyTaskCard(Task task) {
+    final childrenProvider = Provider.of<ChildrenProvider>(context, listen: false);
+    final List<Child> assignedChildren = task.childIds
+        .map((childId) => childrenProvider.children.firstWhere(
+              (child) => child.id == childId,
+              orElse: () => childrenProvider.children.first,
+            ))
+        .toList();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            task.type == TaskType.positive
+                ? Colors.green.withOpacity(0.05)
+                : Colors.red.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: task.type == TaskType.positive
+              ? Colors.green.withOpacity(0.2)
+              : Colors.red.withOpacity(0.2),
+        ),
+      ),
+      child: InkWell(
+        onTap: () => _showTaskCompletionDialog(task, assignedChildren),
+        borderRadius: BorderRadius.circular(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: task.type == TaskType.positive
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.red.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                task.type == TaskType.positive
+                    ? Icons.add_circle
+                    : Icons.remove_circle,
+                color: task.type == TaskType.positive
+                    ? Colors.green
+                    : Colors.red,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${task.type == TaskType.positive ? "+" : "-"}${task.stars} ⭐',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: task.type == TaskType.positive
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Afficher les enfants assignés
+                  Row(
+                    children: assignedChildren.map((child) {
+                      return Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              child.avatar,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              child.name,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.check_circle_outline,
+              color: AppColors.primary,
+              size: 24,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTaskCompletionDialog(Task task, List<Child> assignedChildren) {
+    if (assignedChildren.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icône de question
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: AppColors.gradientPrimary,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.help_outline,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Titre
+                Text(
+                  assignedChildren.length == 1
+                      ? 'Est-ce que ${assignedChildren.first.name} a fait cette tâche ?'
+                      : 'Est-ce que les enfants ont fait cette tâche ?',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                
+                // Nom de la tâche
+                Text(
+                  task.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                
+                // Boutons
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: AppColors.primary.withOpacity(0.3),
+                            ),
+                          ),
+                        ),
+                        child: const Text(
+                          'Non',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _completeTask(task, assignedChildren);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Oui',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _completeTask(Task task, List<Child> assignedChildren) async {
+    final childrenProvider = Provider.of<ChildrenProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    if (authProvider.currentUser == null) return;
+
+    // Mettre à jour les étoiles pour chaque enfant assigné
+    for (final child in assignedChildren) {
+      final updatedChild = child.copyWith(
+        stars: child.stars + task.starChange,
+        updatedAt: DateTime.now(),
+      );
+      
+      // Mettre à jour l'enfant dans Firestore
+      await FirestoreService().updateChild(updatedChild);
+      
+      // Mettre à jour le provider
+      childrenProvider.updateChild(updatedChild);
+    }
+
+    // Si c'est une tâche quotidienne, mettre à jour la date de dernière complétion
+    if (task.isDaily) {
+      final updatedTask = task.copyWith(
+        lastCompletedAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      
+      // Mettre à jour la tâche dans Firestore
+      await FirestoreService().updateTask(updatedTask);
+      
+      // Recharger les tâches quotidiennes pour masquer celle qui vient d'être complétée
+      await _loadDailyTasks(authProvider.currentUser!.id);
+    }
+
+    // Afficher une confirmation
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          assignedChildren.length == 1
+              ? '${task.starChange > 0 ? "+" : ""}${task.starChange} étoile(s) ajoutée(s) à ${assignedChildren.first.name} !'
+              : '${task.starChange > 0 ? "+" : ""}${task.starChange} étoile(s) ajoutée(s) aux enfants !',
+        ),
+        backgroundColor: AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );
