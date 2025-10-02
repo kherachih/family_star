@@ -82,17 +82,107 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
     });
   }
 
+  void _checkForExpiredSanctions(List<SanctionApplied> previousSanctions) {
+    // Vérifier si des sanctions viennent d'expirer (étaient actives avant mais ne le sont plus)
+    final now = DateTime.now();
+    final currentSanctionIds = _activeSanctions.map((s) => s.id).toSet();
+    
+    final recentlyExpired = previousSanctions.where((previousSanction) {
+      // Si la sanction était dans la liste précédente mais n'y est plus
+      // ou si elle est encore active mais expirée selon le temps
+      return !currentSanctionIds.contains(previousSanction.id) ||
+             (previousSanction.isActive && 
+              previousSanction.endsAt != null && 
+              now.isAfter(previousSanction.endsAt!));
+    }).toList();
+    
+    if (recentlyExpired.isNotEmpty) {
+      // Afficher une célébration pour chaque sanction expirée
+      for (final sanction in recentlyExpired) {
+        _showCelebrationDialog(sanction);
+      }
+    }
+  }
+
+  void _showCelebrationDialog(SanctionApplied sanction) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Text('🎉', style: TextStyle(fontSize: 30)),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Sanction terminée !',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              '🎊',
+              style: TextStyle(fontSize: 60),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Félicitations ! La sanction "${sanction.sanctionName}" de ${widget.child.name} est maintenant terminée !',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'C\'est la fête ! 🎉',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Recharger les sanctions pour mettre à jour l'interface
+              _loadActiveSanctions();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Super ! 🎊'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _loadActiveSanctions() async {
     final rewardsProvider = Provider.of<RewardsProvider>(context, listen: false);
     await rewardsProvider.loadSanctionsApplied(widget.child.id);
     
     // Mettre à jour la liste des sanctions actives après le chargement
     if (mounted) {
+      final previousSanctions = List<SanctionApplied>.from(_activeSanctions);
       setState(() {
         _activeSanctions = rewardsProvider.sanctionsApplied
             .where((s) => s.isActive && !s.isExpired)
             .toList();
       });
+      
+      // Vérifier si des sanctions viennent d'expirer et afficher une célébration
+      _checkForExpiredSanctions(previousSanctions);
     }
   }
 
@@ -100,11 +190,8 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
     // Mettre à jour l'interface toutes les minutes pour le compte à rebours
     _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
       if (mounted) {
-        // Mettre à jour seulement l'interface pour le compte à rebours
-        // sans recharger les données depuis Firestore
-        setState(() {
-          // La liste _activeSanctions reste la même, mais le temps restant est recalculé
-        });
+        // Recharger les sanctions pour vérifier si certaines ont expiré
+        _loadActiveSanctions();
       }
     });
   }

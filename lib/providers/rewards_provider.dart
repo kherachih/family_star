@@ -245,7 +245,7 @@ class RewardsProvider with ChangeNotifier {
           // Générer un ID unique pour la notification
           final notificationId = DateTime.now().millisecondsSinceEpoch % 100000;
           
-          final notificationScheduled = await notificationService.scheduleSanctionEndNotification(
+          final notificationScheduled = await notificationService.scheduleSanctionExpirationNotification(
             id: notificationId,
             childName: child.name,
             sanctionName: sanction.name,

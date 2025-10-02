@@ -64,8 +64,8 @@ class NotificationService {
     try {
       await flutterLocalNotificationsPlugin.zonedSchedule(
         id,
-        'Sanction terminée',
-        'La sanction "$sanctionName" de $childName est maintenant terminée',
+        '🎉 Sanction terminée !',
+        'Félicitations ! La sanction "$sanctionName" de $childName est maintenant terminée 🎊',
         tz.TZDateTime.from(endTime, tz.local),
         const NotificationDetails(
           android: AndroidNotificationDetails(
@@ -75,6 +75,9 @@ class NotificationService {
             importance: Importance.max,
             priority: Priority.high,
             icon: '@mipmap/ic_launcher',
+            color: Color(0xFF4CAF50),
+            enableVibration: true,
+            playSound: true,
           ),
           iOS: DarwinNotificationDetails(
             presentAlert: true,
@@ -94,6 +97,54 @@ class NotificationService {
         return false;
       }
       // Gérer les autres erreurs
+      debugPrint('Erreur lors de la planification de la notification: $e');
+      return false;
+    } catch (e) {
+      debugPrint('Erreur inattendue lors de la planification de la notification: $e');
+      return false;
+    }
+  }
+
+  Future<bool> scheduleSanctionExpirationNotification({
+    required int id,
+    required String childName,
+    required String sanctionName,
+    required DateTime endTime,
+  }) async {
+    try {
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id,
+        '🎉 Fin de sanction !',
+        'La sanction de $childName est terminée ! C\'est la fête ! 🎉🎊',
+        tz.TZDateTime.from(endTime, tz.local),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'sanction_expiration_channel',
+            'Expiration des sanctions',
+            channelDescription: 'Notifications quand une sanction expire automatiquement',
+            importance: Importance.max,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+            color: Color(0xFF4CAF50),
+            enableVibration: true,
+            playSound: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        androidAllowWhileIdle: true,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      return true;
+    } on PlatformException catch (e) {
+      if (e.code == 'exact_alarms_not_permitted') {
+        debugPrint('Permission pour les alarmes exactes non accordée. La notification ne sera pas planifiée.');
+        return false;
+      }
       debugPrint('Erreur lors de la planification de la notification: $e');
       return false;
     } catch (e) {

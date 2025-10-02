@@ -493,12 +493,40 @@ class FirestoreService {
           .orderBy('appliedAt', descending: true)
           .get();
 
-      return querySnapshot.docs
+      final sanctions = querySnapshot.docs
           .map((doc) => SanctionApplied.fromMap(doc.data(), doc.id))
           .toList();
+
+      // Vérifier automatiquement les sanctions expirées et les désactiver
+      await _checkAndUpdateExpiredSanctions(sanctions);
+
+      return sanctions;
     } catch (e) {
       debugPrint('Error getting sanctions applied: $e');
       return [];
+    }
+  }
+
+  Future<void> _checkAndUpdateExpiredSanctions(List<SanctionApplied> sanctions) async {
+    final now = DateTime.now();
+    final batch = _firestore.batch();
+    bool hasUpdates = false;
+
+    for (final sanction in sanctions) {
+      if (sanction.isActive && sanction.isExpired) {
+        // La sanction est expirée mais toujours active, la désactiver
+        batch.update(
+          _firestore.collection(_sanctionsAppliedCollection).doc(sanction.id),
+          {'isActive': false}
+        );
+        hasUpdates = true;
+        debugPrint('Sanction expirée désactivée automatiquement: ${sanction.sanctionName}');
+      }
+    }
+
+    if (hasUpdates) {
+      await batch.commit();
+      debugPrint('Mise à jour des sanctions expirées terminée');
     }
   }
 
