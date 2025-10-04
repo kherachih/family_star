@@ -2,6 +2,11 @@
     <!-- Permission pour planifier des alarmes exactes (nécessaire pour Android 12+) -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    
+    <!-- Permissions pour l'accès à la galerie et à l'appareil photo -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.CAMERA" android:required="false" />
     <application
         android:label="Family Star"
         android:name="${applicationName}"

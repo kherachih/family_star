@@ -110,6 +110,68 @@ class FirebaseStorageService {
     }
   }
 
+  /// Upload une photo de profil pour un parent
+  /// Retourne l'URL de téléchargement ou null en cas d'erreur
+  static Future<String?> uploadParentPhoto({
+    required String parentId,
+    required String imagePath,
+  }) async {
+    try {
+      // Lire le fichier image
+      final File imageFile = File(imagePath);
+      if (!await imageFile.exists()) {
+        throw Exception('Le fichier image n\'existe pas');
+      }
+
+      // Lire les bytes de l'image
+      final Uint8List originalBytes = await imageFile.readAsBytes();
+
+      // Compresser l'image
+      final Uint8List compressedBytes = await _compressImage(originalBytes);
+
+      // Créer une référence unique pour l'image
+      final String fileName = 'parent_$parentId.jpg';
+      final Reference ref = _storage.ref().child('parents').child(fileName);
+
+      // Metadata pour optimiser le stockage
+      final SettableMetadata metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {
+          'parentId': parentId,
+          'uploadedAt': DateTime.now().toIso8601String(),
+        },
+      );
+
+      // Upload l'image compressée
+      final UploadTask uploadTask = ref.putData(compressedBytes, metadata);
+      final TaskSnapshot snapshot = await uploadTask;
+
+      // Obtenir l'URL de téléchargement
+      final String downloadUrl = await snapshot.ref.getDownloadURL();
+
+      debugPrint('Photo de profil uploadée avec succès: $downloadUrl');
+      return downloadUrl;
+
+    } catch (e) {
+      debugPrint('Erreur lors de l\'upload de la photo de profil: $e');
+      return null;
+    }
+  }
+
+  /// Supprime la photo de profil d'un parent
+  static Future<bool> deleteParentPhoto(String parentId) async {
+    try {
+      final String fileName = 'parent_$parentId.jpg';
+      final Reference ref = _storage.ref().child('parents').child(fileName);
+      await ref.delete();
+      debugPrint('Photo de profil supprimée avec succès pour le parent: $parentId');
+      return true;
+    } catch (e) {
+      debugPrint('Erreur lors de la suppression de la photo de profil: $e');
+      return false;
+    }
+  }
+
   /// Met à jour la photo d'un enfant (supprime l'ancienne et upload la nouvelle)
   static Future<String?> updateChildPhoto({
     required String childId,

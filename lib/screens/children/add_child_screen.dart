@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/children_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/family_provider.dart';
 import '../../utils/avatars.dart';
 
 class AddChildScreen extends StatefulWidget {
@@ -84,14 +85,19 @@ class _AddChildScreenState extends State<AddChildScreen> {
       return;
     }
 
+    // Utiliser l'ID de la famille actuelle si disponible, sinon utiliser l'ID du parent
+    final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
+    String familyId = familyProvider.currentFamily?.id ?? authProvider.currentUser!.id;
+    
     final success = await childrenProvider.addChild(
-      parentId: authProvider.currentUser!.id,
+      familyId: familyId,
       name: _nameController.text.trim(),
       age: _calculatedAge,
       birthDate: _birthDate!,
       gender: _selectedGender,
       avatarIndex: _selectedAvatarIndex,
       birthdayStars: int.parse(_birthdayStarsController.text),
+      familyProvider: familyProvider,
     );
 
     if (success && mounted) {

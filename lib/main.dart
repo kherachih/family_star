@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'providers/auth_provider.dart';
 import 'providers/children_provider.dart';
 import 'providers/rewards_provider.dart';
+import 'providers/family_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main/main_screen.dart';
 import 'firebase_options.dart';
@@ -29,6 +30,7 @@ class FamilyStarApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AuthProvider()),
+        ChangeNotifierProvider(create: (context) => FamilyProvider()),
         ChangeNotifierProvider(create: (context) => ChildrenProvider()),
         ChangeNotifierProvider(create: (context) => RewardsProvider()),
       ],
@@ -150,7 +152,22 @@ class _AppRouterState extends State<AppRouter> {
   Future<void> _initializeApp() async {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
+      
       await authProvider.initializeAuth();
+      
+      // Si l'utilisateur est déjà connecté, charger ses familles
+      if (authProvider.currentUser != null) {
+        await familyProvider.loadFamiliesByParentId(authProvider.currentUser!.id);
+        
+        // Si l'utilisateur n'a pas de famille, en créer une automatiquement
+        if (familyProvider.currentFamily == null) {
+          await familyProvider.createFamilyForParent(
+            authProvider.currentUser!.id,
+            authProvider.currentUser!.name,
+          );
+        }
+      }
     } catch (e) {
       // Ignore errors during testing
     }

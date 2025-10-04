@@ -3,7 +3,7 @@ import '../utils/avatars.dart';
 
 class Child {
   final String id;
-  final String parentId;
+  final String familyId; // Remplace parentId par familyId
   final String name;
   final int age;
   final DateTime? birthDate;
@@ -18,7 +18,7 @@ class Child {
 
   Child({
     required this.id,
-    required this.parentId,
+    required this.familyId,
     required this.name,
     required this.age,
     this.birthDate,
@@ -38,7 +38,7 @@ class Child {
   factory Child.fromMap(Map<String, dynamic> map) {
     return Child(
       id: map['id'] as String,
-      parentId: map['parentId'] as String,
+      familyId: map['familyId'] as String? ?? map['parentId'] as String, // Compatibilité avec les anciennes données
       name: map['name'] as String,
       age: map['age'] as int,
       birthDate: map['birthDate'] != null
@@ -64,7 +64,7 @@ class Child {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'parentId': parentId,
+      'familyId': familyId,
       'name': name,
       'age': age,
       'birthDate': birthDate?.toIso8601String(),
@@ -81,7 +81,7 @@ class Child {
 
   Child copyWith({
     String? id,
-    String? parentId,
+    String? familyId,
     String? name,
     int? age,
     DateTime? birthDate,
@@ -96,7 +96,7 @@ class Child {
   }) {
     return Child(
       id: id ?? this.id,
-      parentId: parentId ?? this.parentId,
+      familyId: familyId ?? this.familyId,
       name: name ?? this.name,
       age: age ?? this.age,
       birthDate: birthDate ?? this.birthDate,

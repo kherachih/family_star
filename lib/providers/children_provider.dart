@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/child.dart';
 import '../services/firestore_service.dart';
+import 'family_provider.dart';
 
 class ChildrenProvider with ChangeNotifier {
   final FirestoreService _firestoreService = FirestoreService();
@@ -12,11 +13,14 @@ class ChildrenProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  Future<void> loadChildren(String parentId) async {
+  Future<void> loadChildren(String familyId) async {
     _setLoading(true);
     try {
-      print('🔍 Chargement des enfants pour le parent: $parentId');
-      _children = await _firestoreService.getChildrenByParentId(parentId);
+      print('🔍 Chargement des enfants pour la famille: $familyId');
+      
+      // Utiliser la méthode universelle qui cherche avec familyId ou parentId
+      _children = await _firestoreService.getChildrenByFamilyOrParentId(familyId);
+      
       print('✅ ${_children.length} enfant(s) chargé(s)');
       for (var child in _children) {
         print('   - ${child.name} (${child.stars} étoiles)');
@@ -30,8 +34,13 @@ class ChildrenProvider with ChangeNotifier {
     }
   }
 
+  // Pour la compatibilité avec l'ancien code
+  Future<void> loadChildrenByParentId(String parentId) async {
+    await loadChildren(parentId);
+  }
+
   Future<bool> addChild({
-    required String parentId,
+    required String familyId,
     required String name,
     required int age,
     DateTime? birthDate,
@@ -40,13 +49,14 @@ class ChildrenProvider with ChangeNotifier {
     int avatarIndex = 0,
     int birthdayStars = 10,
     List<String> objectives = const [],
+    FamilyProvider? familyProvider,
   }) async {
     _setLoading(true);
     try {
-      print('➕ Ajout enfant: $name pour parent: $parentId');
+      print('➕ Ajout enfant: $name pour famille: $familyId');
       final child = Child(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        parentId: parentId,
+        familyId: familyId,
         name: name,
         age: age,
         birthDate: birthDate,
@@ -61,6 +71,13 @@ class ChildrenProvider with ChangeNotifier {
 
       await _firestoreService.createChild(child);
       print('✅ Enfant ajouté dans Firestore avec avatar: ${child.avatar}');
+      
+      // Ajouter l'enfant à la famille si le familyProvider est fourni
+      if (familyProvider != null && familyProvider.currentFamily != null) {
+        await familyProvider.addChildToFamily(familyProvider.currentFamily!.id, child.id);
+        print('✅ Enfant ajouté à la famille: ${familyProvider.currentFamily!.id}');
+      }
+      
       _children.add(child);
       _clearError();
       notifyListeners();

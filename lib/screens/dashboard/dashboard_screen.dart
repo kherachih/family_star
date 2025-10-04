@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/children_provider.dart';
+import '../../providers/family_provider.dart';
 import '../../models/child.dart';
 import '../../utils/app_colors.dart';
 import '../children/children_management_screen.dart';
@@ -29,6 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
     final childrenProvider = Provider.of<ChildrenProvider>(context, listen: false);
 
     print('🔄 Dashboard: Chargement des données');
@@ -36,7 +38,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     print('🆔 ID utilisateur: ${authProvider.currentUser?.id}');
 
     if (authProvider.currentUser != null) {
-      await childrenProvider.loadChildren(authProvider.currentUser!.id);
+      // Utiliser l'ID de la famille actuelle si disponible, sinon utiliser l'ID du parent
+      String familyId = familyProvider.currentFamily?.id ?? authProvider.currentUser!.id;
+      print('🏠 ID famille utilisé: $familyId');
+      await childrenProvider.loadChildren(familyId);
     } else {
       print('⚠️ Aucun utilisateur connecté');
     }

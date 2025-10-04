@@ -1,0 +1,120 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Règle pour la collection parents
+    match /parents/{parentId} {
+      // Un utilisateur peut lire (get) et modifier (update, delete) son propre document.
+      allow get, update, delete: if request.auth != null && request.auth.uid == parentId;
+      // Un utilisateur peut créer son propre document.
+      allow create: if request.auth != null && request.resource.data.email == request.auth.token.email;
+      // Tout utilisateur authentifié peut lister la collection (nécessaire pour la recherche par email).
+      allow list: if request.auth != null;
+    }
+
+    // Règles pour la collection families
+    match /families/{familyId} {
+      // Lire: Un utilisateur peut lire les données d'une famille s'il en est membre.
+      allow get: if request.auth != null && request.auth.uid in resource.data.parentIds;
+
+      // Créer: Un utilisateur peut créer une famille si son ID est dans la liste des parents
+      // et s'il est le créateur désigné.
+      allow create: if request.auth != null && request.auth.uid in request.resource.data.parentIds && request.auth.uid == request.resource.data.createdBy;
+
+      // Mettre à jour: Un utilisateur peut mettre à jour une famille s'il en est membre.
+      allow update: if request.auth != null && request.auth.uid in resource.data.parentIds;
+
+      // Supprimer: Seul le créateur original de la famille peut la supprimer.
+      allow delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
+    }
+
+    // Parents peuvent accéder aux enfants de leur famille
+    match /children/{childId} {
+      // Pour la lecture, mise à jour et suppression: vérifier si l'utilisateur est parent dans la famille de l'enfant
+      allow read, update, delete: if request.auth != null &&
+        (
+          // Vérifier avec familyId (nouveau système)
+          (resource.data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(resource.data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(resource.data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (resource.data.parentId != null && resource.data.parentId == request.auth.uid) ||
+          // Cas spécial: l'utilisateur est le créateur de la famille et l'enfant a un familyId
+          (resource.data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(resource.data.familyId)) &&
+           request.auth.uid == get(/databases/$(database)/documents/families/$(resource.data.familyId)).data.createdBy)
+        );
+      
+      // Pour la création: vérifier si l'utilisateur est parent dans la famille spécifiée
+      allow create: if request.auth != null &&
+        (
+          // Vérifier avec familyId (nouveau système)
+          (request.resource.data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(request.resource.data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(request.resource.data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (request.resource.data.parentId != null && request.resource.data.parentId == request.auth.uid) ||
+          // Cas spécial: l'utilisateur est le créateur de la famille
+          (request.resource.data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(request.resource.data.familyId)) &&
+           request.auth.uid == get(/databases/$(database)/documents/families/$(request.resource.data.familyId)).data.createdBy)
+        );
+      
+      // Pour les requêtes (list): permettre la recherche par familyId ou parentId
+      allow list: if request.auth != null;
+    }
+
+    // Parents peuvent accéder aux tâches qu'ils ont créées
+    match /tasks/{taskId} {
+      allow read, update, delete: if request.auth != null &&
+        resource.data.parentId == request.auth.uid;
+      allow create: if request.auth != null &&
+        request.resource.data.parentId == request.auth.uid;
+    }
+
+    // Parents peuvent accéder aux récompenses qu'ils ont créées
+    match /rewards/{rewardId} {
+      allow read, update, delete: if request.auth != null &&
+        resource.data.parentId == request.auth.uid;
+      allow create: if request.auth != null &&
+        request.resource.data.parentId == request.auth.uid;
+    }
+
+    // Parents peuvent accéder aux sanctions qu'ils ont créées
+    match /sanctions/{sanctionId} {
+      allow read, update, delete: if request.auth != null &&
+        resource.data.parentId == request.auth.uid;
+      allow create: if request.auth != null &&
+        request.resource.data.parentId == request.auth.uid;
+    }
+
+    // Parents peuvent accéder aux échanges de récompenses de leurs enfants
+    match /reward_exchanges/{exchangeId} {
+      allow read, update, delete: if request.auth != null &&
+        exists(/databases/$(database)/documents/children/$(resource.data.childId)) &&
+        get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid;
+      allow create: if request.auth != null &&
+        exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) &&
+        get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId == request.auth.uid;
+    }
+
+    // Parents peuvent accéder aux sanctions appliquées de leurs enfants
+    match /sanctions_applied/{sanctionAppliedId} {
+      allow read, update, delete: if request.auth != null &&
+        exists(/databases/$(database)/documents/children/$(resource.data.childId)) &&
+        get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid;
+      allow create: if request.auth != null &&
+        exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) &&
+        get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId == request.auth.uid;
+    }
+
+    // Parents peuvent accéder aux pertes d'étoiles de leurs enfants
+    match /star_losses/{starLossId} {
+      allow read, update, delete: if request.auth != null &&
+        exists(/databases/$(database)/documents/children/$(resource.data.childId)) &&
+        get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid;
+      allow create: if request.auth != null &&
+        exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) &&
+        get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId == request.auth.uid;
+    }
+  }
+}

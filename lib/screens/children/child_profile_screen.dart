@@ -10,7 +10,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/rewards_provider.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/avatars.dart';
 import '../rewards/rewards_catalog_screen.dart';
+import 'history_screen.dart';
 import 'sanctions_applied_screen.dart';
 
 class ChildProfileScreen extends StatefulWidget {
@@ -29,12 +31,18 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
   bool _isEditing = false;
   Timer? _timer;
   List<SanctionApplied> _activeSanctions = [];
+  String _selectedGender = 'boy';
+  int _selectedAvatarIndex = 0;
+  DateTime? _selectedBirthDate;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.child.name);
     _ageController = TextEditingController(text: widget.child.age.toString());
+    _selectedGender = widget.child.gender;
+    _selectedAvatarIndex = widget.child.avatarIndex;
+    _selectedBirthDate = widget.child.birthDate;
     _loadActiveSanctions();
     _startTimer();
   }
@@ -50,9 +58,37 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Vérifier que la date de naissance est sélectionnée
+    if (_selectedBirthDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez sélectionner une date de naissance'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Calculer l'âge à partir de la date de naissance
+    final calculatedAge = _calculateAge(_selectedBirthDate);
+
+    // Vérifier que l'âge est dans la plage valide (3-12 ans)
+    if (calculatedAge < 3 || calculatedAge > 18) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('L\'âge doit être entre 3 et 18 ans'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final updatedChild = widget.child.copyWith(
       name: _nameController.text.trim(),
-      age: int.parse(_ageController.text),
+      age: calculatedAge,
+      birthDate: _selectedBirthDate,
+      gender: _selectedGender,
+      avatarIndex: _selectedAvatarIndex,
     );
 
     final childrenProvider = Provider.of<ChildrenProvider>(context, listen: false);
@@ -78,6 +114,9 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
         // Annuler les modifications
         _nameController.text = widget.child.name;
         _ageController.text = widget.child.age.toString();
+        _selectedGender = widget.child.gender;
+        _selectedAvatarIndex = widget.child.avatarIndex;
+        _selectedBirthDate = widget.child.birthDate;
       }
     });
   }
@@ -355,31 +394,111 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Photo de profil (Avatar) avec dégradé
-                  Container(
-                    width: 130,
-                    height: 130,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: AppColors.gradientHero,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                  // Photo de profil (Avatar) avec dégradé et bouton d'historique
+                  Stack(
+                    children: [
+                      Container(
+                        width: 130,
+                        height: 130,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: AppColors.gradientHero,
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        currentChild.avatar,
-                        style: const TextStyle(fontSize: 70),
+                        child: Center(
+                          child: Text(
+                            _isEditing ? ChildAvatars.getAvatar(_selectedGender, _selectedAvatarIndex) : currentChild.avatar,
+                            style: const TextStyle(fontSize: 70),
+                          ),
+                        ),
                       ),
-                    ),
+                      // Bouton d'historique en haut à droite
+                      Positioned(
+                        top: 0,
+                        right: _isEditing ? -50 : 0, // Déplace le bouton hors de l'écran en mode édition
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => HistoryScreen(child: currentChild),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.history, color: Colors.white),
+                            tooltip: 'Voir l\'historique',
+                            iconSize: 20,
+                            constraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 40,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Bouton pour modifier l'avatar en mode édition
+                      if (_isEditing)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurple,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: IconButton(
+                              onPressed: () {
+                                _showAvatarSelectionDialog(
+                                  context,
+                                  setState,
+                                  _selectedGender,
+                                  _selectedAvatarIndex,
+                                  (gender) => setState(() => _selectedGender = gender),
+                                  (index) => setState(() => _selectedAvatarIndex = index),
+                                );
+                              },
+                              icon: const Icon(Icons.edit, color: Colors.white),
+                              tooltip: 'Modifier l\'avatar',
+                              iconSize: 20,
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 40,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 24),
 
@@ -542,65 +661,83 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Informations du profil
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            'Informations',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
+                  // Informations du profil - affiché uniquement en mode édition
+                  if (_isEditing) ...[
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Informations',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Nom
+                            TextFormField(
+                              controller: _nameController,
+                              enabled: _isEditing,
+                              decoration: const InputDecoration(
+                                labelText: 'Nom',
+                                prefixIcon: Icon(Icons.person),
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Veuillez saisir le nom de l\'enfant';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Date de naissance
+                            GestureDetector(
+                              onTap: _selectBirthDate,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Nom
-                          TextFormField(
-                            controller: _nameController,
-                            enabled: _isEditing,
-                            decoration: const InputDecoration(
-                              labelText: 'Nom',
-                              prefixIcon: Icon(Icons.person),
-                              border: OutlineInputBorder(),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.cake, color: Colors.grey),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        _selectedBirthDate != null
+                                            ? '${_selectedBirthDate!.day}/${_selectedBirthDate!.month}/${_selectedBirthDate!.year}'
+                                            : 'Sélectionner la date de naissance',
+                                        style: TextStyle(
+                                          color: _selectedBirthDate != null ? Colors.black : Colors.grey,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                    const Icon(Icons.calendar_today, color: Colors.grey),
+                                  ],
+                                ),
+                              ),
                             ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Veuillez saisir le nom de l\'enfant';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Âge
-                          TextFormField(
-                            controller: _ageController,
-                            enabled: _isEditing,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Âge',
-                              prefixIcon: Icon(Icons.cake),
-                              border: OutlineInputBorder(),
-                              suffixText: 'ans',
+                            const SizedBox(height: 8),
+                            Text(
+                              'Âge calculé: ${_calculateAge(_selectedBirthDate)} ans',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Veuillez saisir l\'âge';
-                              }
-                              final age = int.tryParse(value);
-                              if (age == null || age < 3 || age > 12) {
-                                return 'L\'âge doit être entre 3 et 12 ans';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
 
                   // Message d'erreur
                   if (childrenProvider.errorMessage != null) ...[
@@ -851,24 +988,25 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
 
                             const SizedBox(height: 12),
 
-                            // Bouton pour voir les sanctions actives
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => SanctionsAppliedScreen(child: currentChild),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.history),
-                              label: const Text('Voir les sanctions actives'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                            // Bouton pour voir les sanctions actives - affiché uniquement s'il y a des sanctions actives
+                            if (_activeSanctions.isNotEmpty)
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SanctionsAppliedScreen(child: currentChild),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.history),
+                                label: const Text('Voir les sanctions actives'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -885,7 +1023,9 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
 
   void _showSanctionsDialog(Child child) async {
     final rewardsProvider = Provider.of<RewardsProvider>(context, listen: false);
-    await rewardsProvider.loadSanctions(child.parentId);
+    // Pour l'instant, on utilise familyId comme parentId
+    // Cela sera mis à jour avec le système de familles
+    await rewardsProvider.loadSanctions(child.familyId);
 
     if (!mounted) return;
 
@@ -1163,6 +1303,39 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
     );
   }
 
+  int _calculateAge(DateTime? birthDate) {
+    if (birthDate == null) return 0;
+    
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    
+    // Vérifier si l'anniversaire n'est pas encore passé cette année
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    
+    return age;
+  }
+
+  Future<void> _selectBirthDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedBirthDate ?? DateTime.now().subtract(const Duration(days: 365 * 5)), // Par défaut 5 ans
+      firstDate: DateTime.now().subtract(const Duration(days: 365 * 18)), // Maximum 18 ans
+      lastDate: DateTime.now(),
+      locale: const Locale('fr', 'FR'),
+    );
+    
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedBirthDate = picked;
+        // Mettre à jour le champ âge pour la validation
+        _ageController.text = _calculateAge(picked).toString();
+      });
+    }
+  }
+
   Future<void> _endSanction(SanctionApplied sanction) async {
     try {
       final rewardsProvider = Provider.of<RewardsProvider>(context, listen: false);
@@ -1199,5 +1372,110 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
         );
       }
     }
+  }
+  
+  void _showAvatarSelectionDialog(BuildContext context, StateSetter setState, String selectedGender, int selectedAvatarIndex, Function(String) onGenderChanged, Function(int) onAvatarIndexChanged) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choisir un avatar'),
+        content: StatefulBuilder(
+          builder: (context, dialogSetState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Sélection du genre
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Garçon'),
+                      selected: selectedGender == 'boy',
+                      onSelected: (selected) {
+                        if (selected) {
+                          dialogSetState(() {
+                            onGenderChanged('boy');
+                            onAvatarIndexChanged(0);
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 16),
+                    ChoiceChip(
+                      label: const Text('Fille'),
+                      selected: selectedGender == 'girl',
+                      onSelected: (selected) {
+                        if (selected) {
+                          dialogSetState(() {
+                            onGenderChanged('girl');
+                            onAvatarIndexChanged(0);
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                // Grille d'avatars
+                GridView.builder(
+                  shrinkWrap: true,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    childAspectRatio: 1,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: ChildAvatars.getAvatarsByGender(selectedGender).length,
+                  itemBuilder: (context, index) {
+                    final avatar = ChildAvatars.getAvatar(selectedGender, index);
+                    final isSelected = index == selectedAvatarIndex;
+                    
+                    return GestureDetector(
+                      onTap: () {
+                        dialogSetState(() {
+                          onAvatarIndexChanged(index);
+                        });
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.deepPurple.withOpacity(0.2) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected ? Colors.deepPurple : Colors.grey.withOpacity(0.3),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            avatar,
+                            style: const TextStyle(fontSize: 30),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Valider'),
+          ),
+        ],
+      ),
+    );
   }
 }

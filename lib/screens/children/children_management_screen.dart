@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/children_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/family_provider.dart';
 import '../../models/child.dart';
 import 'add_child_screen.dart';
 import 'child_profile_screen.dart';
@@ -24,10 +25,13 @@ class _ChildrenManagementScreenState extends State<ChildrenManagementScreen> {
 
   Future<void> _loadChildren() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
     final childrenProvider = Provider.of<ChildrenProvider>(context, listen: false);
 
     if (authProvider.currentUser != null) {
-      await childrenProvider.loadChildren(authProvider.currentUser!.id);
+      // Utiliser l'ID de la famille actuelle si disponible, sinon utiliser l'ID du parent
+      String familyId = familyProvider.currentFamily?.id ?? authProvider.currentUser!.id;
+      await childrenProvider.loadChildren(familyId);
     }
   }
 

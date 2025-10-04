@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/children_provider.dart';
+import '../../providers/family_provider.dart';
 import '../../models/child.dart';
 import '../../utils/app_colors.dart';
 import 'add_child_screen.dart';
@@ -25,10 +26,13 @@ class _ChildrenTabState extends State<ChildrenTab> {
 
   Future<void> _loadData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
     final childrenProvider = Provider.of<ChildrenProvider>(context, listen: false);
 
     if (authProvider.currentUser != null) {
-      await childrenProvider.loadChildren(authProvider.currentUser!.id);
+      // Utiliser l'ID de la famille actuelle si disponible, sinon utiliser l'ID du parent
+      String familyId = familyProvider.currentFamily?.id ?? authProvider.currentUser!.id;
+      await childrenProvider.loadChildren(familyId);
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/family_provider.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -28,10 +29,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
+    
     final success = await authProvider.login(
       email: _emailController.text.trim(),
       password: _passwordController.text,
       rememberMe: _rememberMe,
+      familyProvider: familyProvider,
     );
 
     if (success && mounted) {
@@ -41,7 +45,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleGoogleSignIn() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.signInWithGoogle();
+    final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
+    
+    final success = await authProvider.signInWithGoogle(
+      familyProvider: familyProvider,
+    );
 
     if (success && mounted) {
       Navigator.of(context).pushReplacementNamed('/dashboard');
@@ -213,17 +221,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Bouton de connexion Google
                     OutlinedButton.icon(
                       onPressed: authProvider.isLoading ? null : _handleGoogleSignIn,
-                      icon: Image.asset(
-                        'assets/google_logo.png',
-                        height: 20,
-                        width: 20,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.account_circle,
-                            color: Colors.red,
-                            size: 20,
-                          );
-                        },
+                      icon: const Icon(
+                        Icons.account_circle,
+                        color: Colors.red,
+                        size: 20,
                       ),
                       label: const Text('Continuer avec Google'),
                       style: OutlinedButton.styleFrom(

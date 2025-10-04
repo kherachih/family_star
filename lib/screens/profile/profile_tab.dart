@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/family_provider.dart';
 import '../../utils/app_colors.dart';
+import '../family/add_parent_screen.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -126,9 +129,35 @@ class ProfileTab extends StatelessWidget {
                     subtitle: 'Modifier mes informations',
                     gradient: AppColors.gradientPrimary,
                     onTap: () {
-                      // TODO: Navigate to profile edit
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Bientôt disponible')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EditProfileScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Carte Gestion de la famille
+                  Consumer<FamilyProvider>(
+                    builder: (context, familyProvider, child) {
+                      return _SettingsCard(
+                        icon: Icons.people_outline_rounded,
+                        title: 'Gestion de la famille',
+                        subtitle: familyProvider.currentFamily != null
+                            ? '${familyProvider.currentFamily!.parentIds.length} parent(s)'
+                            : 'Ajouter des parents',
+                        gradient: AppColors.gradientTertiary,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AddParentScreen(),
+                            ),
+                          );
+                        },
                       );
                     },
                   ),

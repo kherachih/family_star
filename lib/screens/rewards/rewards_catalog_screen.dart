@@ -25,7 +25,9 @@ class _RewardsCatalogScreenState extends State<RewardsCatalogScreen> {
 
   void _loadData() {
     final rewardsProvider = context.read<RewardsProvider>();
-    rewardsProvider.loadRewards(widget.child.parentId);
+    // Pour l'instant, on utilise familyId comme parentId
+    // Cela sera mis à jour avec le système de familles
+    rewardsProvider.loadRewards(widget.child.familyId);
     rewardsProvider.loadRewardExchanges(widget.child.id);
   }
 
