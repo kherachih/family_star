@@ -12,6 +12,9 @@ import '../models/sanction.dart';
 import '../models/reward_exchange.dart';
 import '../models/sanction_applied.dart';
 import '../models/history_item.dart';
+import '../models/family_invitation.dart';
+import '../models/support_request.dart';
+import '../models/tutorial_state.dart';
 
 class FirestoreService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -26,6 +29,9 @@ class FirestoreService {
   static const String _rewardExchangesCollection = 'reward_exchanges';
   static const String _sanctionsAppliedCollection = 'sanctions_applied';
   static const String _familiesCollection = 'families';
+  static const String _familyInvitationsCollection = 'family_invitations';
+  static const String _supportRequestsCollection = 'support_requests';
+  static const String _tutorialStatesCollection = 'tutorial_states';
 
   // Parent operations
   Future<void> createParent(Parent parent) async {
@@ -812,10 +818,37 @@ class FirestoreService {
   }
 
   Future<void> addParentToFamily(String familyId, String parentId) async {
-    final family = await getFamilyById(familyId);
-    if (family != null) {
-      final updatedFamily = family.addParent(parentId);
-      await updateFamily(updatedFamily);
+    try {
+      debugPrint('Ajout du parent $parentId à la famille $familyId');
+      
+      // Utiliser une transaction pour garantir la cohérence
+      await _firestore.runTransaction((transaction) async {
+        final familyDoc = await transaction.get(_firestore.collection(_familiesCollection).doc(familyId));
+        
+        if (!familyDoc.exists) {
+          debugPrint('Famille non trouvée: $familyId');
+          throw Exception('Famille non trouvée');
+        }
+        
+        final familyData = familyDoc.data()!;
+        final parentIds = List<String>.from(familyData['parentIds'] ?? []);
+        
+        // Vérifier si le parent est déjà dans la famille
+        if (parentIds.contains(parentId)) {
+          debugPrint('Le parent $parentId est déjà dans la famille $familyId');
+          return; // Ne rien faire, le parent est déjà dans la famille
+        }
+        
+        // Ajouter le parent à la famille
+        parentIds.add(parentId);
+        transaction.update(familyDoc.reference, {'parentIds': parentIds});
+      });
+      
+      debugPrint('Parent $parentId ajouté avec succès à la famille $familyId');
+    } catch (e) {
+      debugPrint('Erreur lors de l\'ajout du parent à la famille: $e');
+      debugPrint('Stack trace: ${StackTrace.current}');
+      rethrow; // Propager l'erreur pour la gérer au niveau supérieur
     }
   }
 
@@ -859,4 +892,323 @@ class FirestoreService {
     await createFamily(family);
     return family;
   }
-}
+
+  // Family Invitation operations
+  
+  // Créer une invitation de famille
+  Future<void> createFamilyInvitation(FamilyInvitation invitation) async {
+    await _firestore
+        .collection(_familyInvitationsCollection)
+        .doc(invitation.id)
+        .set(invitation.toMap());
+    debugPrint('Invitation de famille créée: ${invitation.id}');
+  }
+
+  // Obtenir une invitation par son ID
+  Future<FamilyInvitation?> getFamilyInvitationById(String id) async {
+    try {
+      final doc = await _firestore
+          .collection(_familyInvitationsCollection)
+          .doc(id)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        return FamilyInvitation.fromMap(doc.data()!);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting family invitation by id: $e');
+      return null;
+    }
+  }
+
+  // Obtenir les invitations d'un utilisateur
+  Future<List<FamilyInvitation>> getFamilyInvitationsByUserId(String userId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_familyInvitationsCollection)
+          .where('invitedUserId', isEqualTo: userId)
+          .where('status', isEqualTo: 'pending')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => FamilyInvitation.fromMap(doc.data()))
+          .where((invitation) => !invitation.isExpired)
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting family invitations by user: $e');
+      return [];
+    }
+  }
+
+  // Mettre à jour une invitation
+  Future<void> updateFamilyInvitation(FamilyInvitation invitation) async {
+    await _firestore
+        .collection(_familyInvitationsCollection)
+        .doc(invitation.id)
+        .update(invitation.toMap());
+    debugPrint('Invitation de famille mise à jour: ${invitation.id}');
+  }
+
+  // Accepter une invitation de famille
+  Future<bool> acceptFamilyInvitation(String invitationId) async {
+    try {
+      debugPrint('Début de l\'acceptation de l\'invitation: $invitationId');
+      
+      // Vérifier d'abord si l'invitation existe et est active
+      final invitation = await getFamilyInvitationById(invitationId);
+      if (invitation == null) {
+        debugPrint('Invitation non trouvée: $invitationId');
+        return false;
+      }
+      
+      if (!invitation.isActive) {
+        debugPrint('Invitation inactive: $invitationId, statut: ${invitation.status.codeName}');
+        return false;
+      }
+
+      // Mettre à jour le statut de l'invitation d'abord
+      debugPrint('Mise à jour du statut de l\'invitation');
+      final updatedInvitation = invitation.accept();
+      await updateFamilyInvitation(updatedInvitation);
+
+      // Essayer d'ajouter le parent à la famille sans vérifier d'abord si elle existe
+      // La méthode addParentToFamily gérera elle-même les erreurs
+      debugPrint('Ajout du parent à la famille: ${invitation.familyId}');
+      try {
+        await addParentToFamily(invitation.familyId, invitation.invitedUserId);
+        debugPrint('Parent ajouté avec succès à la famille');
+      } catch (e) {
+        debugPrint('Erreur lors de l\'ajout du parent à la famille: $e');
+        // L'invitation est acceptée mais l'ajout à la famille a échoué
+        // L'utilisateur peut essayer de rejoindre manuellement plus tard
+      }
+
+      debugPrint('Invitation acceptée avec succès: $invitationId');
+      return true;
+    } catch (e) {
+      debugPrint('Erreur lors de l\'acceptation de l\'invitation: $e');
+      debugPrint('Stack trace: ${StackTrace.current}');
+      return false;
+    }
+  }
+
+  // Refuser une invitation de famille
+  Future<bool> rejectFamilyInvitation(String invitationId) async {
+    try {
+      debugPrint('Début du refus de l\'invitation: $invitationId');
+      
+      // Vérifier d'abord si l'invitation existe et est active
+      final invitation = await getFamilyInvitationById(invitationId);
+      if (invitation == null) {
+        debugPrint('Invitation non trouvée: $invitationId');
+        return false;
+      }
+      
+      if (!invitation.isActive) {
+        debugPrint('Invitation inactive: $invitationId, statut: ${invitation.status.codeName}');
+        return false;
+      }
+
+      // Mettre à jour le statut de l'invitation
+      debugPrint('Mise à jour du statut de l\'invitation');
+      final updatedInvitation = invitation.reject();
+      await updateFamilyInvitation(updatedInvitation);
+
+      debugPrint('Invitation refusée avec succès: $invitationId');
+      return true;
+    } catch (e) {
+      debugPrint('Erreur lors du refus de l\'invitation: $e');
+      debugPrint('Stack trace: ${StackTrace.current}');
+      return false;
+    }
+  }
+
+  // Vérifier si une invitation existe déjà pour un utilisateur et une famille
+  Future<bool> hasPendingInvitation(String userId, String familyId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_familyInvitationsCollection)
+          .where('invitedUserId', isEqualTo: userId)
+          .where('familyId', isEqualTo: familyId)
+          .where('status', isEqualTo: 'pending')
+          .get();
+
+      // Vérifier si une des invitations est encore active (non expirée)
+      for (final doc in querySnapshot.docs) {
+        final invitation = FamilyInvitation.fromMap(doc.data());
+        if (!invitation.isExpired) {
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error checking pending invitation: $e');
+      return false;
+    }
+  }
+
+  // Nettoyer les invitations expirées
+  Future<void> cleanupExpiredInvitations() async {
+    try {
+      final now = DateTime.now();
+      final querySnapshot = await _firestore
+          .collection(_familyInvitationsCollection)
+          .where('expiresAt', isLessThan: Timestamp.fromDate(now))
+          .where('status', isEqualTo: 'pending')
+          .get();
+
+      final batch = _firestore.batch();
+      for (final doc in querySnapshot.docs) {
+        batch.update(doc.reference, {'status': 'expired'});
+      }
+
+      if (querySnapshot.docs.isNotEmpty) {
+        await batch.commit();
+        debugPrint('${querySnapshot.docs.length} invitations expirées marquées');
+      }
+    } catch (e) {
+      debugPrint('Error cleaning up expired invitations: $e');
+    }
+  }
+
+  // Stream pour les invitations d'un utilisateur
+  Stream<List<FamilyInvitation>> getFamilyInvitationsStreamByUserId(String userId) {
+    return _firestore
+        .collection(_familyInvitationsCollection)
+        .where('invitedUserId', isEqualTo: userId)
+        .where('status', isEqualTo: 'pending')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => FamilyInvitation.fromMap(doc.data()))
+            .where((invitation) => !invitation.isExpired)
+            .toList());
+  }
+
+  // Support Request operations
+  Future<void> createSupportRequest(SupportRequest request) async {
+    await _firestore
+        .collection(_supportRequestsCollection)
+        .doc(request.id)
+        .set(request.toMap());
+    debugPrint('Demande de support créée: ${request.id}');
+  }
+
+  Future<List<SupportRequest>> getSupportRequestsByUserId(String userId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_supportRequestsCollection)
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => SupportRequest.fromMap(doc.data()))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting support requests: $e');
+      return [];
+    }
+  }
+
+  Future<void> updateSupportRequest(SupportRequest request) async {
+    await _firestore
+        .collection(_supportRequestsCollection)
+        .doc(request.id)
+        .update(request.toMap());
+    debugPrint('Demande de support mise à jour: ${request.id}');
+  }
+
+  Stream<List<SupportRequest>> getSupportRequestsStreamByUserId(String userId) {
+    return _firestore
+        .collection(_supportRequestsCollection)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => SupportRequest.fromMap(doc.data()))
+            .toList());
+    }
+  
+    // Tutorial State operations
+    Future<void> createTutorialState(TutorialState tutorialState) async {
+      await _firestore
+          .collection(_tutorialStatesCollection)
+          .doc(tutorialState.id)
+          .set(tutorialState.toMap());
+    }
+  
+    Future<TutorialState?> getTutorialStateByParentId(String parentId) async {
+      try {
+        final querySnapshot = await _firestore
+            .collection(_tutorialStatesCollection)
+            .where('parentId', isEqualTo: parentId)
+            .limit(1)
+            .get();
+  
+        if (querySnapshot.docs.isNotEmpty) {
+          return TutorialState.fromMap(querySnapshot.docs.first.data());
+        }
+        return null;
+      } catch (e) {
+        debugPrint('Error getting tutorial state by parent id: $e');
+        return null;
+      }
+    }
+  
+    Future<void> updateTutorialState(TutorialState tutorialState) async {
+      await _firestore
+          .collection(_tutorialStatesCollection)
+          .doc(tutorialState.id)
+          .update(tutorialState.toMap());
+    }
+  
+    Future<TutorialState> initializeTutorialStateForParent(String parentId) async {
+      // Vérifier si un état de tutoriel existe déjà pour ce parent
+      TutorialState? existingState = await getTutorialStateByParentId(parentId);
+      
+      if (existingState != null) {
+        return existingState;
+      }
+      
+      // Créer un nouvel état de tutoriel
+      final tutorialState = TutorialState(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        parentId: parentId,
+        hasCompletedTutorial: false,
+        currentStep: 0,
+        hasAddedChildren: false,
+        hasConfiguredTasks: false,
+        hasConfiguredRewards: false,
+        hasConfiguredSanctions: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      
+      await createTutorialState(tutorialState);
+      return tutorialState;
+    }
+  
+    Future<void> markTutorialStepCompleted(String parentId, int step) async {
+      final tutorialState = await getTutorialStateByParentId(parentId);
+      if (tutorialState != null) {
+        final updatedState = tutorialState.markStepCompleted(step);
+        await updateTutorialState(updatedState);
+      }
+    }
+  
+    Stream<TutorialState?> getTutorialStateStreamByParentId(String parentId) {
+      return _firestore
+          .collection(_tutorialStatesCollection)
+          .where('parentId', isEqualTo: parentId)
+          .snapshots()
+          .map((snapshot) {
+            if (snapshot.docs.isNotEmpty) {
+              return TutorialState.fromMap(snapshot.docs.first.data());
+            }
+            return null;
+          });
+    }
+  }

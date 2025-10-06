@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 import '../../services/firestore_service.dart';
+import '../../services/notification_service.dart';
 import '../../models/parent.dart';
+import '../../models/family_invitation.dart';
 import '../../utils/app_colors.dart';
 
 class AddParentScreen extends StatefulWidget {
@@ -64,7 +66,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
     }
   }
 
-  Future<void> _addParentToFamily() async {
+  Future<void> _inviteParentToFamily() async {
     if (_foundParent == null) return;
 
     setState(() {
@@ -73,6 +75,8 @@ class _AddParentScreenState extends State<AddParentScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
+    final firestoreService = FirestoreService();
+    final notificationService = NotificationService();
     final currentUser = authProvider.currentUser;
 
     try {
@@ -105,27 +109,54 @@ class _AddParentScreenState extends State<AddParentScreen> {
         return; // Sortir de la fonction car il n'y a rien à faire
       }
 
-      // Ajouter le parent à la famille
-      final success = await familyProvider.addParentToFamily(
-        family.id,
+      // Vérifier si une invitation est déjà en cours
+      final hasPendingInvitation = await firestoreService.hasPendingInvitation(
         _foundParent!.id,
+        family.id,
       );
 
-      if (success && mounted) {
+      if (hasPendingInvitation) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Une invitation a déjà été envoyée à ce parent'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Créer l'invitation
+      final invitation = FamilyInvitation.create(
+        familyId: family.id,
+        familyName: family.name,
+        invitedUserId: _foundParent!.id,
+        invitedUserEmail: _foundParent!.email,
+        invitedUserName: _foundParent!.name,
+        invitedByUserId: currentUser.id,
+        invitedByUserName: currentUser.name,
+      );
+
+      await firestoreService.createFamilyInvitation(invitation);
+
+      // Envoyer une notification d'invitation
+      await notificationService.sendFamilyInvitationNotification(
+        invitedUserId: _foundParent!.id,
+        familyId: family.id,
+        familyName: family.name,
+        invitedByUserName: currentUser.name,
+        invitationId: invitation.id,
+      );
+
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${_foundParent!.name} a été ajouté à la famille avec succès'),
+            content: Text('Invitation envoyée à ${_foundParent!.name}'),
             backgroundColor: Colors.green,
           ),
         );
         Navigator.pop(context);
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de l\'ajout du parent à la famille'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     } catch (e) {
       if (mounted) {
@@ -149,7 +180,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ajouter un parent'),
+        title: const Text('Inviter un parent'),
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
@@ -174,7 +205,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Entrez l\'email du parent que vous souhaitez ajouter à votre famille. Le parent doit déjà avoir un compte.',
+                        'Entrez l\'email du parent que vous souhaitez inviter à rejoindre votre famille. Le parent doit déjà avoir un compte et recevra une notification d\'invitation.',
                         style: TextStyle(
                           color: Colors.blue[700],
                           fontSize: 14,
@@ -295,9 +326,9 @@ class _AddParentScreenState extends State<AddParentScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Bouton d'ajout
+                // Bouton d'invitation
                 ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _addParentToFamily,
+                  onPressed: _isLoading ? null : _inviteParentToFamily,
                   icon: _isLoading
                       ? const SizedBox(
                           width: 20,
@@ -307,8 +338,8 @@ class _AddParentScreenState extends State<AddParentScreen> {
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Icon(Icons.person_add),
-                  label: Text(_isLoading ? 'Ajout...' : 'Ajouter à la famille'),
+                      : const Icon(Icons.mail),
+                  label: Text(_isLoading ? 'Envoi...' : 'Inviter à rejoindre la famille'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,

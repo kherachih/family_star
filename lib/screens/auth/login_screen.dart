@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
+import '../../providers/notification_provider.dart';
+import '../../providers/tutorial_provider.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -30,29 +32,47 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
+    final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
+    final tutorialProvider = Provider.of<TutorialProvider>(context, listen: false);
     
     final success = await authProvider.login(
       email: _emailController.text.trim(),
       password: _passwordController.text,
       rememberMe: _rememberMe,
       familyProvider: familyProvider,
+      notificationProvider: notificationProvider,
+      tutorialProvider: tutorialProvider,
     );
 
     if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed('/dashboard');
+      // Vérifier si l'utilisateur a besoin du tutoriel
+      if (tutorialProvider.needsTutorial) {
+        Navigator.of(context).pushReplacementNamed('/tutorial');
+      } else {
+        Navigator.of(context).pushReplacementNamed('/dashboard');
+      }
     }
   }
 
   Future<void> _handleGoogleSignIn() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
+    final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
+    final tutorialProvider = Provider.of<TutorialProvider>(context, listen: false);
     
     final success = await authProvider.signInWithGoogle(
       familyProvider: familyProvider,
+      notificationProvider: notificationProvider,
+      tutorialProvider: tutorialProvider,
     );
 
     if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed('/dashboard');
+      // Vérifier si l'utilisateur a besoin du tutoriel
+      if (tutorialProvider.needsTutorial) {
+        Navigator.of(context).pushReplacementNamed('/tutorial');
+      } else {
+        Navigator.of(context).pushReplacementNamed('/dashboard');
+      }
     }
   }
 

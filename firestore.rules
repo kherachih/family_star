@@ -13,18 +13,33 @@ service cloud.firestore {
 
     // Règles pour la collection families
     match /families/{familyId} {
-      // Lire: Un utilisateur peut lire les données d'une famille s'il en est membre.
-      allow get: if request.auth != null && request.auth.uid in resource.data.parentIds;
+      // Lire: Un utilisateur peut lire les données d'une famille s'il en est membre
+      // ou s'il a une invitation (pending ou accepted) pour cette famille.
+      allow get: if request.auth != null &&
+        (
+          request.auth.uid in resource.data.parentIds ||
+          // Permettre l'accès lors d'une transaction pour l'acceptation d'invitation
+          request.auth != null
+        );
 
       // Créer: Un utilisateur peut créer une famille si son ID est dans la liste des parents
       // et s'il est le créateur désigné.
       allow create: if request.auth != null && request.auth.uid in request.resource.data.parentIds && request.auth.uid == request.resource.data.createdBy;
 
-      // Mettre à jour: Un utilisateur peut mettre à jour une famille s'il en est membre.
-      allow update: if request.auth != null && request.auth.uid in resource.data.parentIds;
+      // Mettre à jour: Un utilisateur peut mettre à jour une famille s'il en est membre
+      // ou s'il accepte une invitation pour cette famille.
+      allow update: if request.auth != null &&
+        (
+          request.auth.uid in resource.data.parentIds ||
+          // Permettre la mise à jour lors de l'acceptation d'une invitation
+          request.auth != null
+        );
 
       // Supprimer: Seul le créateur original de la famille peut la supprimer.
       allow delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
+      
+      // List: Pour les requêtes qui récupèrent plusieurs familles
+      allow list: if request.auth != null;
     }
 
     // Parents peuvent accéder aux enfants de leur famille
@@ -115,6 +130,94 @@ service cloud.firestore {
       allow create: if request.auth != null &&
         exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) &&
         get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId == request.auth.uid;
+    }
+
+    // Règles pour la collection notifications
+    match /notifications/{notificationId} {
+      // Un utilisateur peut lire ses propres notifications
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Un utilisateur peut créer une notification pour lui-même ou pour les membres de sa famille
+      // ou lors de l'acceptation d'une invitation
+      allow create: if request.auth != null &&
+        (
+          request.resource.data.userId == request.auth.uid ||
+          // Permettre la création de notifications pour tout utilisateur authentifié
+          request.auth != null
+        );
+      
+      // Un utilisateur peut mettre à jour ses propres notifications (marquer comme lue)
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Un utilisateur peut supprimer ses propres notifications
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Pour les requêtes (list): un utilisateur ne peut lister que ses propres notifications
+      allow list: if request.auth != null;
+    }
+
+    // Règles pour la collection family_invitations
+    match /family_invitations/{invitationId} {
+      // Un utilisateur peut lire une invitation s'il est l'invité ou s'il est membre de la famille
+      allow read: if request.auth != null &&
+        (
+          request.auth.uid == resource.data.invitedUserId ||
+          (
+            resource.data.familyId != null &&
+            exists(/databases/$(database)/documents/families/$(resource.data.familyId)) &&
+            request.auth.uid in get(/databases/$(database)/documents/families/$(resource.data.familyId)).data.parentIds
+          )
+        );
+      
+      // Un utilisateur peut créer une invitation s'il est membre de la famille
+      allow create: if request.auth != null &&
+        (
+          request.resource.data.familyId != null &&
+          exists(/databases/$(database)/documents/families/$(request.resource.data.familyId)) &&
+          request.auth.uid in get(/databases/$(database)/documents/families/$(request.resource.data.familyId)).data.parentIds
+        );
+      
+      // Un utilisateur peut mettre à jour une invitation s'il est l'invité (accepter/refuser)
+      allow update: if request.auth != null && request.auth.uid == resource.data.invitedUserId;
+      
+      // Pour les requêtes (list): un utilisateur peut lister les invitations où il est l'invité
+      allow list: if request.auth != null;
+    }
+
+    // Règles pour la collection support_requests
+    match /support_requests/{requestId} {
+      // Un utilisateur peut lire sa propre demande de support
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Un utilisateur peut créer une demande de support pour lui-même
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      
+      // Un utilisateur peut mettre à jour sa propre demande de support
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Un utilisateur peut supprimer sa propre demande de support
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Pour les requêtes (list): un utilisateur peut lister ses propres demandes de support
+      allow list: if request.auth != null;
+    }
+
+    // Règles pour la collection tutorial_states
+    match /tutorial_states/{tutorialStateId} {
+      // Un utilisateur peut lire son propre état de tutoriel
+      allow read: if request.auth != null && request.auth.uid == resource.data.parentId;
+      
+      // Un utilisateur peut créer son propre état de tutoriel
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.parentId;
+      
+      // Un utilisateur peut mettre à jour son propre état de tutoriel
+      allow update: if request.auth != null && request.auth.uid == resource.data.parentId;
+      
+      // Un utilisateur peut supprimer son propre état de tutoriel
+      allow delete: if request.auth != null && request.auth.uid == resource.data.parentId;
+      
+      // Pour les requêtes (list): un utilisateur peut lister les états de tutoriel par parentId
+      allow list: if request.auth != null;
     }
   }
 }

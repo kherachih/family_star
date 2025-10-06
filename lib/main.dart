@@ -6,8 +6,12 @@ import 'providers/auth_provider.dart';
 import 'providers/children_provider.dart';
 import 'providers/rewards_provider.dart';
 import 'providers/family_provider.dart';
+import 'providers/notification_provider.dart';
+import 'providers/tutorial_provider.dart';
+import 'services/notification_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main/main_screen.dart';
+import 'screens/tutorial/tutorial_screen.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -33,6 +37,8 @@ class FamilyStarApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => FamilyProvider()),
         ChangeNotifierProvider(create: (context) => ChildrenProvider()),
         ChangeNotifierProvider(create: (context) => RewardsProvider()),
+        ChangeNotifierProvider(create: (context) => NotificationProvider()),
+        ChangeNotifierProvider(create: (context) => TutorialProvider()),
       ],
       child: MaterialApp(
         title: 'Family Star',
@@ -124,6 +130,7 @@ class FamilyStarApp extends StatelessWidget {
         routes: {
           '/login': (context) => const LoginScreen(),
           '/dashboard': (context) => const MainScreen(),
+          '/tutorial': (context) => const TutorialScreen(),
         },
         debugShowCheckedModeBanner: false,
       ),
@@ -151,14 +158,25 @@ class _AppRouterState extends State<AppRouter> {
 
   Future<void> _initializeApp() async {
     try {
+      // Initialiser le service de notifications
+      await NotificationService().init();
+      
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
+      final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
+      final tutorialProvider = Provider.of<TutorialProvider>(context, listen: false);
       
       await authProvider.initializeAuth();
       
       // Si l'utilisateur est déjà connecté, charger ses familles
       if (authProvider.currentUser != null) {
         await familyProvider.loadFamiliesByParentId(authProvider.currentUser!.id);
+        
+        // Initialiser le provider de notifications
+        notificationProvider.initialize(authProvider.currentUser!.id);
+        
+        // Charger l'état du tutoriel
+        await tutorialProvider.loadTutorialState(authProvider.currentUser!.id);
         
         // Si l'utilisateur n'a pas de famille, en créer une automatiquement
         if (familyProvider.currentFamily == null) {
@@ -170,6 +188,7 @@ class _AppRouterState extends State<AppRouter> {
       }
     } catch (e) {
       // Ignore errors during testing
+      debugPrint('Erreur lors de l\'initialisation de l\'application: $e');
     }
 
     if (mounted) {
@@ -236,7 +255,16 @@ class _AppRouterState extends State<AppRouter> {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         if (authProvider.isAuthenticated) {
-          return const MainScreen();
+          return Consumer<TutorialProvider>(
+            builder: (context, tutorialProvider, child) {
+              // Si l'utilisateur a besoin du tutoriel, l'afficher
+              if (tutorialProvider.needsTutorial) {
+                return const TutorialScreen();
+              } else {
+                return const MainScreen();
+              }
+            },
+          );
         } else {
           return const LoginScreen();
         }

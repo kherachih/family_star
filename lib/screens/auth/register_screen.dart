@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
+import '../../providers/notification_provider.dart';
+import '../../providers/tutorial_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -33,16 +35,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
+    final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
+    final tutorialProvider = Provider.of<TutorialProvider>(context, listen: false);
     
     final success = await authProvider.register(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
       familyProvider: familyProvider,
+      notificationProvider: notificationProvider,
+      tutorialProvider: tutorialProvider,
     );
 
     if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed('/dashboard');
+      // Rediriger vers le tutoriel pour les nouveaux utilisateurs
+      Navigator.of(context).pushReplacementNamed('/tutorial');
     }
   }
 

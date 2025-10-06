@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/app_colors.dart';
-import '../../services/firebase_storage_service.dart';
-import 'dart:io';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -22,8 +19,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   
   bool _isLoading = false;
   bool _showPasswordFields = false;
-  File? _selectedImage;
-  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -47,89 +42,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 80,
-      );
-      
-      if (image != null) {
-        setState(() {
-          _selectedImage = File(image.path);
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la sélection de l\'image: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _showImagePickerOptions() async {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 20),
-            const Text(
-              'Choisir une photo',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Galerie'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Appareil photo'),
-              onTap: () async {
-                Navigator.pop(context);
-                try {
-                  final XFile? image = await _imagePicker.pickImage(
-                    source: ImageSource.camera,
-                    maxWidth: 800,
-                    maxHeight: 800,
-                    imageQuality: 80,
-                  );
-                  
-                  if (image != null) {
-                    setState(() {
-                      _selectedImage = File(image.path);
-                    });
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erreur lors de la capture de l\'image: $e')),
-                    );
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
 
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
@@ -141,23 +53,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
-      String? photoUrl;
-      
-      // Si une nouvelle image a été sélectionnée, l'uploader vers Firebase Storage
-      if (_selectedImage != null && authProvider.currentUser != null) {
-        photoUrl = await FirebaseStorageService.uploadParentPhoto(
-          parentId: authProvider.currentUser!.id,
-          imagePath: _selectedImage!.path,
-        );
-        
-        if (photoUrl == null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erreur lors du téléchargement de la photo')),
-          );
-          return;
-        }
-      }
-
       // Mettre à jour le nom
       bool success = await authProvider.updateProfile(
         name: _nameController.text.trim(),
@@ -168,18 +63,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           const SnackBar(content: Text('Erreur lors de la mise à jour du nom')),
         );
         return;
-      }
-
-      // Si une nouvelle photo a été uploadée, mettre à jour la photo de profil
-      if (photoUrl != null) {
-        success = await authProvider.updateProfilePhoto(photoUrl);
-        
-        if (!success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erreur lors de la mise à jour de la photo')),
-          );
-          return;
-        }
       }
 
       // Si les champs de mot de passe sont visibles, mettre à jour le mot de passe
@@ -269,58 +152,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 children: [
                   const SizedBox(height: 20),
                   
-                  // Photo de profil
+                  // Photo de profil (non modifiable)
                   Center(
                     child: Column(
                       children: [
-                        GestureDetector(
-                          onTap: _showImagePickerOptions,
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: AppColors.gradientPrimary,
-                              ),
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: AppColors.gradientPrimary,
                             ),
-                            child: _selectedImage != null
-                                ? ClipOval(
-                                    child: Image.file(
-                                      _selectedImage!,
-                                      width: 120,
-                                      height: 120,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  )
-                                : authProvider.currentUser!.photoUrl != null
-                                    ? ClipOval(
-                                        child: Image.network(
-                                          authProvider.currentUser!.photoUrl!,
-                                          width: 120,
-                                          height: 120,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return const Icon(
-                                              Icons.person_rounded,
-                                              size: 50,
-                                              color: Colors.white,
-                                            );
-                                          },
-                                        ),
-                                      )
-                                    : const Icon(
+                          ),
+                          child: authProvider.currentUser!.photoUrl != null
+                              ? ClipOval(
+                                  child: Image.network(
+                                    authProvider.currentUser!.photoUrl!,
+                                    width: 120,
+                                    height: 120,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(
                                         Icons.person_rounded,
                                         size: 50,
                                         color: Colors.white,
-                                      ),
-                          ),
+                                      );
+                                    },
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.person_rounded,
+                                  size: 50,
+                                  color: Colors.white,
+                                ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Appuyez pour changer la photo',
+                          'Photo de profil',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],

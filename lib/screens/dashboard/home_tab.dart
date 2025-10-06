@@ -72,40 +72,46 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: Consumer2<AuthProvider, ChildrenProvider>(
-          builder: (context, authProvider, childrenProvider, child) {
-            if (childrenProvider.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: Consumer2<AuthProvider, ChildrenProvider>(
+        builder: (context, authProvider, childrenProvider, child) {
+          if (childrenProvider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            final children = childrenProvider.children;
-            final totalStars = children.fold<int>(0, (sum, child) => sum + child.stars);
+          final children = childrenProvider.children;
+          final totalStars = children.fold<int>(0, (sum, child) => sum + child.stars);
 
-            return CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // AppBar moderne
-                SliverAppBar(
-                  expandedHeight: 200,
-                  floating: false,
-                  pinned: true,
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: AppColors.gradientHero,
-                        ),
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header d'accueil sans AppBar
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: AppColors.gradientHero,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 60),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(24.0),
+                  child: Row(
+                    children: [
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             const Text(
                               '👋 Bonjour',
@@ -119,7 +125,7 @@ class _HomeTabState extends State<HomeTab> {
                             Text(
                               authProvider.currentUser?.name ?? '',
                               style: const TextStyle(
-                                fontSize: 28,
+                                fontSize: 26,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                                 letterSpacing: 0.5,
@@ -136,78 +142,79 @@ class _HomeTabState extends State<HomeTab> {
                           ],
                         ),
                       ),
-                    ),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.star_rounded,
+                          size: 40,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-
-                // Contenu
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Mes Enfants - Slider
-                        const Text(
-                          'Mes Enfants',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (children.isEmpty)
-                          _buildEmptyChildrenState(context)
-                        else if (children.length <= 2)
-                          Column(
-                            children: children
-                                .map((child) => _buildChildCard(child, context))
-                                .toList(),
-                          )
-                        else
-                          SizedBox(
-                            height: 200,
-                            child: PageView.builder(
-                              controller: PageController(viewportFraction: 0.85),
-                              itemCount: children.length,
-                              itemBuilder: (context, index) {
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  child: _buildChildCard(children[index], context),
-                                );
-                              },
-                            ),
-                          ),
-
-                        const SizedBox(height: 32),
-
-                        // Tâches quotidiennes
-                        const Text(
-                          'Tâches quotidiennes',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        _isLoadingTasks
-                            ? const Center(
-                                child: CircularProgressIndicator(),
-                              )
-                            : _dailyTasks.isEmpty
-                                ? _buildEmptyDailyTasksState()
-                                : _buildDailyTasksList(),
-                      ],
-                    ),
+                const SizedBox(height: 24),
+                // Mes Enfants - Slider
+                const Text(
+                  'Mes Enfants',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
+                const SizedBox(height: 16),
+                if (children.isEmpty)
+                  _buildEmptyChildrenState(context)
+                else if (children.length <= 2)
+                  Column(
+                    children: children
+                        .map((child) => _buildChildCard(child, context))
+                        .toList(),
+                  )
+                else
+                  SizedBox(
+                    height: 200,
+                    child: PageView.builder(
+                      controller: PageController(viewportFraction: 0.85),
+                      itemCount: children.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: _buildChildCard(children[index], context),
+                        );
+                      },
+                    ),
+                  ),
+
+                const SizedBox(height: 32),
+
+                // Tâches quotidiennes
+                const Text(
+                  'Tâches quotidiennes',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                _isLoadingTasks
+                    ? const Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    : _dailyTasks.isEmpty
+                        ? _buildEmptyDailyTasksState()
+                        : _buildDailyTasksList(),
               ],
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

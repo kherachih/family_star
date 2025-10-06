@@ -72,68 +72,105 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              expandedHeight: 180,
-              floating: false,
-              pinned: true,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: AppColors.gradientSecondary,
-                    ),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.only(left: 24, right: 24, bottom: 60, top: 60),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
+      body: Column(
+        children: [
+          // Header Tâches sans AppBar
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: AppColors.gradientSecondary,
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Icon(Icons.task_alt_rounded, size: 40, color: Colors.white),
-                        SizedBox(height: 12),
-                        Text(
-                          'Gestion',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.task_alt_rounded,
+                            size: 40,
                             color: Colors.white,
-                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Gestion',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Tâches, récompenses et sanctions',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 24),
+                    // TabBar personnalisé
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TabBar(
+                        controller: _tabController,
+                        indicator: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        labelColor: AppColors.secondary,
+                        unselectedLabelColor: Colors.white70,
+                        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                        tabs: const [
+                          Tab(text: 'Tâches'),
+                          Tab(text: 'Récompenses'),
+                          Tab(text: 'Sanctions'),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              bottom: TabBar(
-                controller: _tabController,
-                indicatorColor: Colors.white,
-                indicatorWeight: 3,
-                labelColor: AppColors.textPrimary,
-                unselectedLabelColor: AppColors.textSecondary,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                tabs: const [
-                  Tab(text: 'Tâches'),
-                  Tab(text: 'Récompenses'),
-                  Tab(text: 'Sanctions'),
-                ],
-              ),
             ),
-          ];
-        },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildTasksSection(),
-            _buildRewardsSection(),
-            _buildSanctionsSection(),
-          ],
-        ),
+          ),
+          // Contenu des onglets
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTasksSection(),
+                _buildRewardsSection(),
+                _buildSanctionsSection(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../utils/app_colors.dart';
 import '../family/add_parent_screen.dart';
+import '../family/family_management_screen.dart';
 import 'edit_profile_screen.dart';
+import '../notifications/notifications_screen.dart';
+import 'support_screen.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -32,7 +36,8 @@ class ProfileTab extends StatelessWidget {
 
     if (confirm == true && context.mounted) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.logout();
+      final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
+      await authProvider.logout(notificationProvider: notificationProvider);
       if (context.mounted) {
         Navigator.of(context).pushReplacementNamed('/login');
       }
@@ -41,48 +46,54 @@ class ProfileTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // AppBar avec dégradé
-          SliverAppBar(
-            expandedHeight: 200,
-            floating: false,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: AppColors.gradientSecondary,
-                  ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header profil sans AppBar
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: AppColors.gradientSecondary,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.secondary.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 60),
-                  child: Consumer<AuthProvider>(
-                    builder: (context, authProvider, child) {
-                      return Column(
+              ],
+            ),
+            padding: const EdgeInsets.all(24.0),
+            child: Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
+                return Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_rounded,
+                        size: 40,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.3),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.person_rounded,
-                              size: 40,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
                           Text(
                             authProvider.currentUser?.name ?? 'Utilisateur',
                             style: const TextStyle(
-                              fontSize: 28,
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                               letterSpacing: 0.5,
@@ -97,30 +108,23 @@ class ProfileTab extends StatelessWidget {
                             ),
                           ),
                         ],
-                      );
-                    },
-                  ),
-                ),
-              ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
-
-          // Contenu
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Paramètres',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+          const SizedBox(height: 24),
+          const Text(
+            'Paramètres',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
 
                   // Carte Profil
                   _SettingsCard(
@@ -147,16 +151,58 @@ class ProfileTab extends StatelessWidget {
                         icon: Icons.people_outline_rounded,
                         title: 'Gestion de la famille',
                         subtitle: familyProvider.currentFamily != null
-                            ? '${familyProvider.currentFamily!.parentIds.length} parent(s)'
-                            : 'Ajouter des parents',
+                            ? 'Voir les membres'
+                            : 'Aucune famille',
                         gradient: AppColors.gradientTertiary,
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AddParentScreen(),
-                            ),
-                          );
+                          if (familyProvider.currentFamily != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const FamilyManagementScreen(),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Vous devez d\'abord créer ou rejoindre une famille'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Carte Inviter des parents
+                  Consumer<FamilyProvider>(
+                    builder: (context, familyProvider, child) {
+                      return _SettingsCard(
+                        icon: Icons.person_add_outlined,
+                        title: 'Inviter des parents',
+                        subtitle: familyProvider.currentFamily != null
+                            ? 'Ajouter un membre à la famille'
+                            : 'Créer une famille d\'abord',
+                        gradient: AppColors.gradientPrimary,
+                        onTap: () {
+                          if (familyProvider.currentFamily != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AddParentScreen(),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Vous devez d\'abord créer ou rejoindre une famille'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
                         },
                       );
                     },
@@ -165,15 +211,23 @@ class ProfileTab extends StatelessWidget {
                   const SizedBox(height: 12),
 
                   // Carte Notifications
-                  _SettingsCard(
-                    icon: Icons.notifications_outlined,
-                    title: 'Notifications',
-                    subtitle: 'Gérer les notifications',
-                    gradient: AppColors.gradientTertiary,
-                    onTap: () {
-                      // TODO: Navigate to notifications settings
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Bientôt disponible')),
+                  Consumer<NotificationProvider>(
+                    builder: (context, notificationProvider, child) {
+                      return _SettingsCard(
+                        icon: Icons.notifications_outlined,
+                        title: 'Notifications',
+                        subtitle: notificationProvider.unreadCount! > 0
+                            ? '${notificationProvider.unreadCount} non lue${notificationProvider.unreadCount! > 1 ? 's' : ''}'
+                            : 'Gérer les notifications',
+                        gradient: AppColors.gradientTertiary,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NotificationsScreen(),
+                            ),
+                          );
+                        },
                       );
                     },
                   ),
@@ -213,9 +267,11 @@ class ProfileTab extends StatelessWidget {
                     subtitle: 'Centre d\'aide et FAQ',
                     gradient: AppColors.gradientTertiary,
                     onTap: () {
-                      // TODO: Navigate to help center
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Bientôt disponible')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SupportScreen(),
+                        ),
                       );
                     },
                   ),
@@ -305,11 +361,7 @@ class ProfileTab extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
-          ),
+          const SizedBox(height: 32),
         ],
       ),
     );

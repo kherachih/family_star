@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import '../models/parent.dart';
 import '../services/firebase_auth_service.dart';
 import 'family_provider.dart';
+import 'notification_provider.dart';
+import 'tutorial_provider.dart';
 
 class AuthProvider with ChangeNotifier {
   final FirebaseAuthService _authService = FirebaseAuthService();
@@ -31,6 +33,8 @@ class AuthProvider with ChangeNotifier {
     required String email,
     required String password,
     FamilyProvider? familyProvider,
+    NotificationProvider? notificationProvider,
+    TutorialProvider? tutorialProvider,
   }) async {
     _setLoading(true);
     try {
@@ -43,6 +47,16 @@ class AuthProvider with ChangeNotifier {
       // Créer une famille pour le nouveau parent
       if (_currentUser != null && familyProvider != null) {
         await familyProvider.createFamilyForParent(_currentUser!.id, _currentUser!.name);
+      }
+      
+      // Initialiser le provider de notifications
+      if (_currentUser != null && notificationProvider != null) {
+        notificationProvider.initialize(_currentUser!.id);
+      }
+      
+      // Initialiser l'état du tutoriel pour le nouvel utilisateur
+      if (_currentUser != null && tutorialProvider != null) {
+        await tutorialProvider.initializeTutorialState(_currentUser!.id);
       }
       
       _clearError();
@@ -60,6 +74,8 @@ class AuthProvider with ChangeNotifier {
     required String password,
     bool rememberMe = false,
     FamilyProvider? familyProvider,
+    NotificationProvider? notificationProvider,
+    TutorialProvider? tutorialProvider,
   }) async {
     _setLoading(true);
     try {
@@ -79,6 +95,16 @@ class AuthProvider with ChangeNotifier {
         }
       }
       
+      // Initialiser le provider de notifications
+      if (_currentUser != null && notificationProvider != null) {
+        notificationProvider.initialize(_currentUser!.id);
+      }
+      
+      // Charger l'état du tutoriel pour l'utilisateur existant
+      if (_currentUser != null && tutorialProvider != null) {
+        await tutorialProvider.loadTutorialState(_currentUser!.id);
+      }
+      
       _clearError();
       return true;
     } catch (e) {
@@ -89,11 +115,17 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<void> logout() async {
+  Future<void> logout({NotificationProvider? notificationProvider}) async {
     _setLoading(true);
     try {
       await _authService.logout();
       _currentUser = null;
+      
+      // Réinitialiser le provider de notifications
+      if (notificationProvider != null) {
+        notificationProvider.reset();
+      }
+      
       _clearError();
     } catch (e) {
       _setError('Erreur lors de la déconnexion: ${e.toString()}');
@@ -188,7 +220,11 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> signInWithGoogle({FamilyProvider? familyProvider}) async {
+  Future<bool> signInWithGoogle({
+    FamilyProvider? familyProvider,
+    NotificationProvider? notificationProvider,
+    TutorialProvider? tutorialProvider,
+  }) async {
     _setLoading(true);
     try {
       _currentUser = await _authService.signInWithGoogle();
@@ -201,6 +237,16 @@ class AuthProvider with ChangeNotifier {
           if (familyProvider.currentFamily == null) {
             await familyProvider.createFamilyForParent(_currentUser!.id, _currentUser!.name);
           }
+        }
+        
+        // Initialiser le provider de notifications
+        if (notificationProvider != null) {
+          notificationProvider.initialize(_currentUser!.id);
+        }
+        
+        // Charger l'état du tutoriel pour l'utilisateur existant
+        if (_currentUser != null && tutorialProvider != null) {
+          await tutorialProvider.loadTutorialState(_currentUser!.id);
         }
         
         _clearError();

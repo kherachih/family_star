@@ -49,55 +49,77 @@ class _ChildrenTabState extends State<ChildrenTab> {
 
             final children = childrenProvider.children;
 
-            return CustomScrollView(
+            return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // AppBar avec dégradé
-                SliverAppBar(
-                  expandedHeight: 150,
-                  floating: false,
-                  pinned: true,
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: AppColors.gradientTertiary,
-                        ),
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Enfants sans AppBar
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: AppColors.gradientTertiary,
                       ),
-                      child: const Padding(
-                        padding: EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 60),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Icon(
-                              Icons.people_rounded,
-                              size: 40,
-                              color: Colors.white,
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              'Mes Enfants',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.tertiary.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(24.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.people_rounded,
+                            size: 40,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Mes Enfants',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
-                            ),
-                          ],
+                              SizedBox(height: 4),
+                              Text(
+                                'Gérez les profils de vos enfants',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-                ),
+                  const SizedBox(height: 24),
 
-                // Liste des enfants
-                if (children.isEmpty)
-                  SliverFillRemaining(
-                    child: Center(
+                  // Liste des enfants
+                  if (children.isEmpty)
+                    Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -157,21 +179,15 @@ class _ChildrenTabState extends State<ChildrenTab> {
                           ),
                         ],
                       ),
+                    )
+                  else
+                    Column(
+                      children: children
+                          .map((child) => _buildChildCard(child))
+                          .toList(),
                     ),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.all(16),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          return _buildChildCard(children[index]);
-                        },
-                        childCount: children.length,
-                      ),
-                    ),
-                  ),
-              ],
+                ],
+              ),
             );
           },
         ),
