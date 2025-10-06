@@ -44,25 +44,9 @@ class _HomeTabState extends State<HomeTab> {
   Future<void> _loadDailyTasks(String parentId) async {
     setState(() => _isLoadingTasks = true);
     try {
-      final dailyTasks = await FirestoreService().getDailyTasksByParentId(parentId);
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      
-      // Filtrer les tâches quotidiennes pour n'afficher que celles non complétées aujourd'hui
-      final filteredTasks = dailyTasks.where((task) {
-        if (task.lastCompletedAt == null) return true;
-        
-        final lastCompletedDate = DateTime(
-          task.lastCompletedAt!.year,
-          task.lastCompletedAt!.month,
-          task.lastCompletedAt!.day,
-        );
-        
-        // Si la tâche a été complétée aujourd'hui, ne pas l'afficher
-        return lastCompletedDate.isBefore(today);
-      }).toList();
-      
-      setState(() => _dailyTasks = filteredTasks);
+      // Utiliser la nouvelle méthode qui filtre automatiquement les tâches non complétées par tous les enfants
+      final pendingTasks = await FirestoreService().getPendingDailyTasksByParentId(parentId);
+      setState(() => _dailyTasks = pendingTasks);
     } catch (e) {
       debugPrint('Error loading daily tasks: $e');
     } finally {
@@ -538,15 +522,23 @@ class _HomeTabState extends State<HomeTab> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // Afficher les enfants assignés
+                  // Afficher les enfants assignés avec leur état de complétion
                   Row(
                     children: assignedChildren.map((child) {
+                      final isCompleted = task.isCompletedTodayByChild(child.id);
                       return Container(
                         margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: isCompleted
+                              ? Colors.green.withOpacity(0.1)
+                              : AppColors.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isCompleted
+                                ? Colors.green.withOpacity(0.3)
+                                : AppColors.primary.withOpacity(0.3),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -558,12 +550,22 @@ class _HomeTabState extends State<HomeTab> {
                             const SizedBox(width: 4),
                             Text(
                               child.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.primary,
+                                color: isCompleted
+                                    ? Colors.green
+                                    : AppColors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
+                            if (isCompleted) ...[
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 14,
+                              ),
+                            ],
                           ],
                         ),
                       );
@@ -728,9 +730,10 @@ class _HomeTabState extends State<HomeTab> {
 
   void _showMultipleChildrenDialog(Task task, List<Child> assignedChildren) {
     // Créer une liste pour suivre quels enfants ont complété la tâche
+    // Initialiser avec l'état actuel de complétion pour chaque enfant
     final Map<String, bool> childrenCompletion = {};
     for (final child in assignedChildren) {
-      childrenCompletion[child.id] = false;
+      childrenCompletion[child.id] = task.isCompletedTodayByChild(child.id);
     }
 
     showDialog(
@@ -805,18 +808,23 @@ class _HomeTabState extends State<HomeTab> {
                     
                     // Liste des enfants avec cases à cocher
                     ...assignedChildren.map((child) {
+                      final isAlreadyCompleted = task.isCompletedTodayByChild(child.id);
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Container(
                           decoration: BoxDecoration(
                             color: childrenCompletion[child.id] == true
                                 ? Colors.green.withOpacity(0.1)
-                                : Colors.grey.withOpacity(0.05),
+                                : isAlreadyCompleted
+                                    ? Colors.grey.withOpacity(0.1)
+                                    : Colors.grey.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: childrenCompletion[child.id] == true
                                   ? Colors.green.withOpacity(0.3)
-                                  : Colors.grey.withOpacity(0.2),
+                                  : isAlreadyCompleted
+                                      ? Colors.grey.withOpacity(0.3)
+                                      : Colors.grey.withOpacity(0.2),
                             ),
                           ),
                           child: CheckboxListTile(
@@ -827,13 +835,31 @@ class _HomeTabState extends State<HomeTab> {
                                   style: const TextStyle(fontSize: 20),
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  child.name,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                                Expanded(
+                                  child: Text(
+                                    child.name,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
+                                if (isAlreadyCompleted)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'Déjà fait',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                             value: childrenCompletion[child.id],
@@ -952,31 +978,32 @@ class _HomeTabState extends State<HomeTab> {
       
       // Mettre à jour le provider
       childrenProvider.updateChild(updatedChild);
+      
+      // Enregistrer la tâche dans l'historique
+      await FirestoreService().recordTaskApplication(task.id, child.id);
     }
 
-    // Si c'est une tâche quotidienne, mettre à jour la date de dernière complétion
+    // Si c'est une tâche quotidienne, mettre à jour les complétions individuelles
     if (task.isDaily) {
-      final updatedTask = task.copyWith(
-        lastCompletedAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
+      // Marquer la tâche comme complétée par chaque enfant
+      for (final child in completedChildren) {
+        await FirestoreService().markDailyTaskCompletedByChild(task.id, child.id);
+      }
       
-      // Mettre à jour la tâche dans Firestore
-      await FirestoreService().updateTask(updatedTask);
-      
-      // Recharger les tâches quotidiennes pour masquer celle qui vient d'être complétée
+      // Recharger les tâches quotidiennes pour mettre à jour l'affichage
       await _loadDailyTasks(authProvider.currentUser!.id);
     }
 
     // Afficher une confirmation
     final childrenNames = completedChildren.map((child) => child.name).join(', ');
+    final remainingChildren = task.getChildrenNotCompletedToday();
+    final message = remainingChildren.isEmpty
+        ? 'Tâche complétée par tous les enfants ! ${task.starChange > 0 ? "+" : ""}${task.starChange} étoile(s) ajoutée(s) à ${childrenNames} !'
+        : '${task.starChange > 0 ? "+" : ""}${task.starChange} étoile(s) ajoutée(s) à ${childrenNames} ! ${remainingChildren.length} enfant(s) restant(s).';
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          completedChildren.length == 1
-              ? '${task.starChange > 0 ? "+" : ""}${task.starChange} étoile(s) ajoutée(s) à ${childrenNames} !'
-              : '${task.starChange > 0 ? "+" : ""}${task.starChange} étoile(s) ajoutée(s) à ${childrenNames} !',
-        ),
+        content: Text(message),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(

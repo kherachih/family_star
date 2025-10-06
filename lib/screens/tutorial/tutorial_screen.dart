@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/tutorial_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/children_provider.dart';
 import '../../providers/family_provider.dart';
+import '../../providers/tutorial_selections_provider.dart';
 import '../../utils/app_colors.dart';
 import 'tutorial_introduction_step.dart';
 import 'tutorial_children_step.dart';
@@ -29,6 +31,9 @@ class _TutorialScreenState extends State<TutorialScreen> with TickerProviderStat
   void initState() {
     super.initState();
     _pageController = PageController();
+    
+    // Activer le mode plein écran pour le tutoriel
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     
     // Initialiser les animations
     _animationController = AnimationController(
@@ -66,6 +71,8 @@ class _TutorialScreenState extends State<TutorialScreen> with TickerProviderStat
   void dispose() {
     _pageController.dispose();
     _animationController.dispose();
+    // Restaurer le mode d'affichage normal en quittant le tutoriel
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
@@ -131,8 +138,8 @@ class _TutorialScreenState extends State<TutorialScreen> with TickerProviderStat
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Consumer<TutorialProvider>(
-        builder: (context, tutorialProvider, child) {
+      body: Consumer2<TutorialProvider, TutorialSelectionsProvider>(
+        builder: (context, tutorialProvider, selectionsProvider, child) {
           if (tutorialProvider.isLoading) {
             return const Center(
               child: CircularProgressIndicator(),
@@ -284,9 +291,9 @@ class _TutorialScreenState extends State<TutorialScreen> with TickerProviderStat
                             _goToStep(1); // Aller à la page d'ajout des enfants
                           },
                         ),
-                        TutorialChildrenStep(onStepCompleted: _completeStep),
-                        TutorialTasksStep(onStepCompleted: _completeStep),
-                        TutorialRewardsStep(onStepCompleted: _completeStep),
+                        TutorialChildrenStep(onStepCompleted: () => _goToStep(2)),
+                        TutorialTasksStep(onStepCompleted: () => _goToStep(3)),
+                        TutorialRewardsStep(onStepCompleted: () => _goToStep(4)),
                         TutorialSanctionsStep(onStepCompleted: _completeStep),
                       ],
                     ),

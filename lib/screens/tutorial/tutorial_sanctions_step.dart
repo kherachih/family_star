@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/children_provider.dart';
 import '../../providers/rewards_provider.dart';
+import '../../providers/tutorial_selections_provider.dart';
 import '../../utils/app_colors.dart';
 import '../rewards/add_sanction_screen.dart';
 import '../../models/sanction.dart';
+import '../../models/task.dart';
+import '../../models/reward.dart';
 import '../../models/duration_unit.dart';
 import '../../services/firestore_service.dart';
 
@@ -114,6 +118,17 @@ class _TutorialSanctionsStepState extends State<TutorialSanctionsStep> {
     setState(() {
       _isLoading = false;
     });
+    
+    // Stocker les sanctions dans le provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final selectionsProvider = Provider.of<TutorialSelectionsProvider>(context, listen: false);
+      selectionsProvider.setSanctions(_suggestedSanctions);
+    });
+  }
+
+  void _toggleSanctionSelection(String sanctionId) {
+    final selectionsProvider = Provider.of<TutorialSelectionsProvider>(context, listen: false);
+    selectionsProvider.toggleSanctionSelection(sanctionId);
   }
 
   void _navigateToAddSanction() async {
@@ -129,32 +144,82 @@ class _TutorialSanctionsStepState extends State<TutorialSanctionsStep> {
     }
   }
 
-  Future<void> _addSuggestedSanction(Sanction suggestedSanction) async {
+  Future<void> _saveAllSelections() async {
+    final selectionsProvider = Provider.of<TutorialSelectionsProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final childrenProvider = Provider.of<ChildrenProvider>(context, listen: false);
 
-    if (authProvider.currentUser == null) return;
+    if (authProvider.currentUser == null || childrenProvider.children.isEmpty) return;
 
-    // Créer une nouvelle sanction basée sur la suggestion
-    final newSanction = Sanction(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      parentId: authProvider.currentUser!.id,
-      name: suggestedSanction.name,
-      description: suggestedSanction.description,
-      starsCost: suggestedSanction.starsCost,
-      durationValue: suggestedSanction.durationValue,
-      durationUnit: suggestedSanction.durationUnit,
-    );
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
-      // Ajouter la sanction à Firestore
-      await FirestoreService().createSanction(newSanction);
+      // Sauvegarder toutes les sélections
+      final selectedTasks = selectionsProvider.getSelectedTasks();
+      final selectedRewards = selectionsProvider.getSelectedRewards();
+      final selectedSanctions = selectionsProvider.getSelectedSanctions();
+
+      // Créer les tâches
+      for (Task task in selectedTasks) {
+        final newTask = Task(
+          id: DateTime.now().millisecondsSinceEpoch.toString() + '_${task.id}',
+          parentId: authProvider.currentUser!.id,
+          childIds: childrenProvider.children.map((child) => child.id).toList(),
+          title: task.title,
+          description: task.description,
+          type: task.type,
+          stars: task.stars,
+          isDaily: task.isDaily,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        await FirestoreService().createTask(newTask);
+      }
+
+      // Créer les récompenses
+      for (Reward reward in selectedRewards) {
+        final newReward = Reward(
+          id: DateTime.now().millisecondsSinceEpoch.toString() + '_${reward.id}',
+          parentId: authProvider.currentUser!.id,
+          name: reward.name,
+          description: reward.description,
+          starsCost: reward.starsCost,
+        );
+
+        await FirestoreService().createReward(newReward);
+      }
+
+      // Créer les sanctions
+      for (Sanction sanction in selectedSanctions) {
+        final newSanction = Sanction(
+          id: DateTime.now().millisecondsSinceEpoch.toString() + '_${sanction.id}',
+          parentId: authProvider.currentUser!.id,
+          name: sanction.name,
+          description: sanction.description,
+          starsCost: sanction.starsCost,
+          durationValue: sanction.durationValue,
+          durationUnit: sanction.durationUnit,
+        );
+
+        await FirestoreService().createSanction(newSanction);
+      }
       
+      // Afficher un message de succès
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Sanction "${newSanction.name}" ajoutée avec succès'),
+          content: Text('Configuration terminée : ${selectedTasks.length} tâche(s), ${selectedRewards.length} récompense(s) et ${selectedSanctions.length} sanction(s) ajoutée(s)'),
           backgroundColor: Colors.green,
         ),
       );
+      
+      // Attendre un peu pour que le message s'affiche
+      await Future.delayed(const Duration(milliseconds: 1000));
+      
+      // Passer à l'étape suivante
+      widget.onStepCompleted();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -162,7 +227,102 @@ class _TutorialSanctionsStepState extends State<TutorialSanctionsStep> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
+  }
+
+  Widget _buildSanctionItem(Sanction sanction) {
+    final selectionsProvider = Provider.of<TutorialSelectionsProvider>(context);
+    final isSelected = selectionsProvider.selections.selectedSanctionIds.contains(sanction.id);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: isSelected ? Border.all(color: Colors.blue, width: 2) : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            Icons.warning,
+            color: Colors.red,
+          ),
+        ),
+        title: Text(
+          sanction.name,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.blue : null,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              sanction.description,
+              style: TextStyle(
+                fontSize: 14,
+                color: isSelected ? Colors.blue.shade700 : Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Durée: ${_formatDuration(sanction)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected ? Colors.blue.shade600 : Colors.grey[500],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.star_border,
+                size: 14,
+                color: Colors.red,
+              ),
+              const SizedBox(width: 2),
+              Text(
+                '${sanction.starsCost}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+            ],
+          ),
+        ),
+        onTap: () => _toggleSanctionSelection(sanction.id!),
+      ),
+    );
   }
 
   String _formatDuration(Sanction sanction) {
@@ -294,100 +454,7 @@ class _TutorialSanctionsStepState extends State<TutorialSanctionsStep> {
               child: ListView.builder(
                 itemCount: _suggestedSanctions.length,
                 itemBuilder: (context, index) {
-                  final sanction = _suggestedSanctions[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.warning,
-                          color: Colors.red,
-                        ),
-                      ),
-                      title: Text(
-                        sanction.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            sanction.description,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Durée: ${_formatDuration(sanction)}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[500],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.star_border,
-                                  size: 14,
-                                  color: Colors.red,
-                                ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  '${sanction.starsCost}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () => _addSuggestedSanction(sanction),
-                            icon: const Icon(Icons.add_circle_outline),
-                            color: Colors.red,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  return _buildSanctionItem(_suggestedSanctions[index]);
                 },
               ),
             ),
@@ -395,64 +462,62 @@ class _TutorialSanctionsStepState extends State<TutorialSanctionsStep> {
           
           // Boutons d'action
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _navigateToAddSanction,
-              icon: const Icon(Icons.add),
-              label: const Text('Créer une sanction personnalisée'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          Consumer<TutorialSelectionsProvider>(
+            builder: (context, selectionsProvider, child) {
+              return SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _saveAllSelections,
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(Icons.check),
+                  label: Text(_isLoading
+                      ? 'Enregistrement...'
+                      : 'Terminer et sauvegarder tout (${selectionsProvider.selections.selectedSanctionIds.length} sanctions, ${selectionsProvider.selections.selectedRewardIds.length} récompenses, ${selectionsProvider.selections.selectedTaskIds.length} tâches)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
           
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: widget.onStepCompleted,
-              icon: const Icon(Icons.check_circle),
-              label: const Text('Terminer le tutoriel'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
+              color: Colors.red.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Colors.green.withOpacity(0.3),
+                color: Colors.red.withOpacity(0.3),
                 width: 1,
               ),
             ),
             child: Row(
               children: [
                 const Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
+                  Icons.lightbulb,
+                  color: Colors.red,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Félicitations ! Vous avez configuré toutes les bases de Family Star.',
+                    'Astuce : Sélectionnez plusieurs sanctions puis validez en une seule fois !',
                     style: TextStyle(
-                      color: Colors.green,
+                      color: Colors.red,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

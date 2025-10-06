@@ -226,43 +226,45 @@ class _TutorialChildrenStepState extends State<TutorialChildrenStep> {
                 ),
               ] else ...[
                 // Message si aucun enfant
-                SizedBox(
-                  height: 200,
+                Container(
+                  constraints: const BoxConstraints(minHeight: 200),
                   child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: AppColors.tertiary.withOpacity(0.1),
-                            shape: BoxShape.circle,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: AppColors.tertiary.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.child_care,
+                              size: 60,
+                              color: AppColors.tertiary,
+                            ),
                           ),
-                          child: Icon(
-                            Icons.child_care,
-                            size: 80,
-                            color: AppColors.tertiary,
+                          const SizedBox(height: 16),
+                          Text(
+                            'Aucun enfant ajouté',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[700],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Aucun enfant ajouté',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[700],
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ajoutez votre premier enfant pour commencer',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Ajoutez votre premier enfant pour commencer',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

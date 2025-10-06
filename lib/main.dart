@@ -8,6 +8,7 @@ import 'providers/rewards_provider.dart';
 import 'providers/family_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/tutorial_provider.dart';
+import 'providers/tutorial_selections_provider.dart';
 import 'services/notification_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main/main_screen.dart';
@@ -39,6 +40,7 @@ class FamilyStarApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => RewardsProvider()),
         ChangeNotifierProvider(create: (context) => NotificationProvider()),
         ChangeNotifierProvider(create: (context) => TutorialProvider()),
+        ChangeNotifierProvider(create: (context) => TutorialSelectionsProvider()),
       ],
       child: MaterialApp(
         title: 'Family Star',

@@ -19,7 +19,8 @@ class Task {
   final int stars; // Nombre d'étoiles (toujours positif)
   final bool isActive; // Si la tâche est active ou archivée
   final bool isDaily; // Si la tâche est quotidienne
-  final DateTime? lastCompletedAt; // Date de dernière complétion (pour les tâches quotidiennes)
+  final DateTime? lastCompletedAt; // Date de dernière complétion (pour les tâches quotidiennes) - gardé pour compatibilité
+  final Map<String, DateTime>? dailyCompletions; // Suivi des complétions quotidiennes par enfant (childId -> date de complétion)
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -34,6 +35,7 @@ class Task {
     this.isActive = true,
     this.isDaily = false,
     this.lastCompletedAt,
+    this.dailyCompletions,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -43,6 +45,56 @@ class Task {
 
   /// Retourne le changement d'étoiles (positif ou négatif)
   int get starChange => type == TaskType.positive ? stars : -stars;
+  
+  /// Vérifie si un enfant spécifique a complété la tâche aujourd'hui
+  bool isCompletedTodayByChild(String childId) {
+    if (!isDaily || dailyCompletions == null || !dailyCompletions!.containsKey(childId)) {
+      return false;
+    }
+    
+    final completionDate = dailyCompletions![childId]!;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final completionDay = DateTime(completionDate.year, completionDate.month, completionDate.day);
+    
+    return completionDay == today;
+  }
+  
+  /// Vérifie si tous les enfants assignés ont complété la tâche aujourd'hui
+  bool isCompletedTodayByAllChildren() {
+    if (!isDaily || childIds.isEmpty) return false;
+    
+    // Si aucune complétion enregistrée, retourner false
+    if (dailyCompletions == null || dailyCompletions!.isEmpty) return false;
+    
+    // Vérifier si tous les enfants assignés ont complété la tâche aujourd'hui
+    for (final childId in childIds) {
+      if (!isCompletedTodayByChild(childId)) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  /// Retourne la liste des enfants qui ont complété la tâche aujourd'hui
+  List<String> getChildrenCompletedToday() {
+    if (!isDaily || dailyCompletions == null) return [];
+    
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    return dailyCompletions!.entries.where((entry) {
+      final completionDate = entry.value;
+      final completionDay = DateTime(completionDate.year, completionDate.month, completionDate.day);
+      return completionDay == today;
+    }).map((entry) => entry.key).toList();
+  }
+  
+  /// Retourne la liste des enfants qui n'ont pas encore complété la tâche aujourd'hui
+  List<String> getChildrenNotCompletedToday() {
+    return childIds.where((childId) => !isCompletedTodayByChild(childId)).toList();
+  }
 
   factory Task.fromMap(Map<String, dynamic> map) {
     // Support ancien format avec childId unique
@@ -53,6 +105,20 @@ class Task {
       childIds = [map['childId'] as String];
     } else {
       childIds = [];
+    }
+    
+    // Gérer les complétions quotidiennes par enfant
+    Map<String, DateTime>? dailyCompletions;
+    if (map['dailyCompletions'] != null) {
+      dailyCompletions = {};
+      final completionsMap = map['dailyCompletions'] as Map<String, dynamic>;
+      completionsMap.forEach((childId, completionDate) {
+        if (completionDate is String) {
+          dailyCompletions![childId] = DateTime.parse(completionDate);
+        } else if (completionDate is Timestamp) {
+          dailyCompletions![childId] = completionDate.toDate();
+        }
+      });
     }
 
     return Task(
@@ -73,6 +139,7 @@ class Task {
               ? DateTime.parse(map['lastCompletedAt'] as String)
               : (map['lastCompletedAt'] as Timestamp).toDate()
           : null,
+      dailyCompletions: dailyCompletions,
       createdAt: map['createdAt'] is String
           ? DateTime.parse(map['createdAt'] as String)
           : (map['createdAt'] as Timestamp).toDate(),
@@ -94,6 +161,7 @@ class Task {
       'isActive': isActive,
       'isDaily': isDaily,
       'lastCompletedAt': lastCompletedAt?.toIso8601String(),
+      'dailyCompletions': dailyCompletions?.map((key, value) => MapEntry(key, value.toIso8601String())),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -110,6 +178,7 @@ class Task {
     bool? isActive,
     bool? isDaily,
     DateTime? lastCompletedAt,
+    Map<String, DateTime>? dailyCompletions,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -124,8 +193,21 @@ class Task {
       isActive: isActive ?? this.isActive,
       isDaily: isDaily ?? this.isDaily,
       lastCompletedAt: lastCompletedAt ?? this.lastCompletedAt,
+      dailyCompletions: dailyCompletions ?? this.dailyCompletions,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+  
+  /// Marque la tâche comme complétée par un enfant spécifique aujourd'hui
+  Task markCompletedByChild(String childId) {
+    final now = DateTime.now();
+    final updatedCompletions = Map<String, DateTime>.from(dailyCompletions ?? {});
+    updatedCompletions[childId] = now;
+    
+    return copyWith(
+      dailyCompletions: updatedCompletions,
+      updatedAt: now,
     );
   }
 }

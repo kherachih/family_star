@@ -330,7 +330,7 @@ class _ChildProfileScreenState extends State<ChildProfileScreen> {
     final childrenProvider = Provider.of<ChildrenProvider>(context, listen: false);
 
     try {
-      await childrenProvider.updateChildStars(widget.child.id, task.starChange);
+      await childrenProvider.updateChildStars(widget.child.id, task.starChange, taskId: task.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

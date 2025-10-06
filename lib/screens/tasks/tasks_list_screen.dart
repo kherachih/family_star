@@ -131,7 +131,7 @@ class _TasksListScreenState extends State<TasksListScreen> {
       try {
         // Appliquer la tâche à tous les enfants sélectionnés
         for (final child in selectedChildren) {
-          await childrenProvider.updateChildStars(child.id, task.starChange);
+          await childrenProvider.updateChildStars(child.id, task.starChange, taskId: task.id);
         }
 
         if (mounted) {
@@ -192,7 +192,7 @@ class _TasksListScreenState extends State<TasksListScreen> {
     if (confirm == true) {
       try {
         final childrenProvider = Provider.of<ChildrenProvider>(context, listen: false);
-        await childrenProvider.updateChildStars(child.id, task.starChange);
+        await childrenProvider.updateChildStars(child.id, task.starChange, taskId: task.id);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/tutorial_provider.dart';
@@ -21,6 +22,9 @@ class _TutorialCompletionScreenState extends State<TutorialCompletionScreen>
   @override
   void initState() {
     super.initState();
+    
+    // Restaurer le mode d'affichage normal
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     
     // Initialiser les animations
     _animationController = AnimationController(
@@ -77,11 +81,11 @@ class _TutorialCompletionScreenState extends State<TutorialCompletionScreen>
           ),
         ),
         child: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const SizedBox(height: 20),
                 // Animation de l'icône de succès
                 ScaleTransition(
                   scale: _scaleAnimation,
@@ -113,7 +117,7 @@ class _TutorialCompletionScreenState extends State<TutorialCompletionScreen>
                   ),
                 ),
                 
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
                 
                 // Titre de félicitations
                 FadeTransition(
@@ -142,7 +146,7 @@ class _TutorialCompletionScreenState extends State<TutorialCompletionScreen>
                   ),
                 ),
                 
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
                 
                 // Message de réussite
                 FadeTransition(
@@ -191,7 +195,7 @@ class _TutorialCompletionScreenState extends State<TutorialCompletionScreen>
                   ),
                 ),
                 
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
                 
                 // Bouton pour commencer
                 FadeTransition(
@@ -222,7 +226,7 @@ class _TutorialCompletionScreenState extends State<TutorialCompletionScreen>
                   ),
                 ),
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 
                 // Conseil
                 FadeTransition(
@@ -258,6 +262,7 @@ class _TutorialCompletionScreenState extends State<TutorialCompletionScreen>
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
               ],
             ),
           ),

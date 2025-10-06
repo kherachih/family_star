@@ -81,9 +81,17 @@ service cloud.firestore {
     // Parents peuvent accéder aux tâches qu'ils ont créées
     match /tasks/{taskId} {
       allow read, update, delete: if request.auth != null &&
-        resource.data.parentId == request.auth.uid;
+        (
+          // Vérifier avec parentId (système actuel pour les tâches)
+          resource.data.parentId == request.auth.uid
+        );
       allow create: if request.auth != null &&
-        request.resource.data.parentId == request.auth.uid;
+        (
+          // Vérifier avec parentId (système actuel pour les tâches)
+          request.resource.data.parentId == request.auth.uid
+        );
+      // Pour les requêtes (list): permettre la recherche par parentId
+      allow list: if request.auth != null;
     }
 
     // Parents peuvent accéder aux récompenses qu'ils ont créées
@@ -106,30 +114,163 @@ service cloud.firestore {
     match /reward_exchanges/{exchangeId} {
       allow read, update, delete: if request.auth != null &&
         exists(/databases/$(database)/documents/children/$(resource.data.childId)) &&
-        get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid;
+        (
+          // Vérifier avec familyId (nouveau système)
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId != null &&
+           get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid) ||
+          // Cas spécial: l'utilisateur est le créateur de la famille
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)) &&
+           request.auth.uid == get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)).data.createdBy)
+        );
       allow create: if request.auth != null &&
         exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) &&
-        get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId == request.auth.uid;
+        (
+          // Vérifier avec familyId (nouveau système)
+          (get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId != null &&
+           get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId == request.auth.uid) ||
+          // Cas spécial: l'utilisateur est le créateur de la famille
+          (get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)) &&
+           request.auth.uid == get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)).data.createdBy)
+        );
     }
 
     // Parents peuvent accéder aux sanctions appliquées de leurs enfants
     match /sanctions_applied/{sanctionAppliedId} {
       allow read, update, delete: if request.auth != null &&
         exists(/databases/$(database)/documents/children/$(resource.data.childId)) &&
-        get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid;
+        (
+          // Vérifier avec familyId (nouveau système)
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId != null &&
+           get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid) ||
+          // Cas spécial: l'utilisateur est le créateur de la famille
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)) &&
+           request.auth.uid == get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)).data.createdBy)
+        );
       allow create: if request.auth != null &&
         exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) &&
-        get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId == request.auth.uid;
+        (
+          // Vérifier avec familyId (nouveau système)
+          (get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId != null &&
+           get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId == request.auth.uid) ||
+          // Cas spécial: l'utilisateur est le créateur de la famille
+          (get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)) &&
+           request.auth.uid == get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)).data.createdBy)
+        );
     }
 
     // Parents peuvent accéder aux pertes d'étoiles de leurs enfants
     match /star_losses/{starLossId} {
       allow read, update, delete: if request.auth != null &&
         exists(/databases/$(database)/documents/children/$(resource.data.childId)) &&
-        get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid;
+        (
+          // Vérifier avec familyId (nouveau système)
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId != null &&
+           get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid) ||
+          // Cas spécial: l'utilisateur est le créateur de la famille
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)) &&
+           request.auth.uid == get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)).data.createdBy)
+        );
       allow create: if request.auth != null &&
         exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) &&
-        get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId == request.auth.uid;
+        (
+          // Vérifier avec familyId (nouveau système)
+          (get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId != null &&
+           get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId == request.auth.uid) ||
+          // Cas spécial: l'utilisateur est le créateur de la famille
+          (get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)) &&
+           request.auth.uid == get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)).data.createdBy)
+        );
+    }
+
+    // Règles pour la collection task_completions (suivi des complétions de tâches quotidiennes)
+    match /task_completions/{completionId} {
+      // Un utilisateur peut lire les complétions de tâches de ses enfants
+      allow read: if request.auth != null &&
+        exists(/databases/$(database)/documents/children/$(resource.data.childId)) &&
+        (
+          // Vérifier avec familyId (nouveau système)
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId != null &&
+           get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid)
+        );
+      
+      // Un utilisateur peut créer des complétions pour les tâches de ses enfants
+      allow create: if request.auth != null &&
+        exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) &&
+        exists(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)) &&
+        (
+          // Vérifier avec familyId (nouveau système)
+          (get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId != null &&
+           get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parentId == request.auth.uid)
+        ) &&
+        // Vérifier que l'utilisateur est le créateur de la tâche
+        get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.parentId == request.auth.uid;
+      
+      // Un utilisateur peut mettre à jour les complétions de tâches de ses enfants
+      allow update: if request.auth != null &&
+        exists(/databases/$(database)/documents/children/$(resource.data.childId)) &&
+        (
+          // Vérifier avec familyId (nouveau système)
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId != null &&
+           get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid)
+        );
+      
+      // Un utilisateur peut supprimer les complétions de tâches de ses enfants
+      allow delete: if request.auth != null &&
+        exists(/databases/$(database)/documents/children/$(resource.data.childId)) &&
+        (
+          // Vérifier avec familyId (nouveau système)
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId != null &&
+           exists(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/children/$(resource.data.childId)).data.familyId)).data.parentIds) ||
+          // Compatibilité avec l'ancien système parentId
+          (get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId != null &&
+           get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parentId == request.auth.uid)
+        );
+      
+      // Pour les requêtes (list): un utilisateur peut lister les complétions de tâches de ses enfants
+      allow list: if request.auth != null;
     }
 
     // Règles pour la collection notifications

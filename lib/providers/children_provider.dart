@@ -126,7 +126,7 @@ class ChildrenProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> updateChildStars(String childId, int starChange) async {
+  Future<bool> updateChildStars(String childId, int starChange, {String? taskId}) async {
     try {
       final childIndex = _children.indexWhere((c) => c.id == childId);
       if (childIndex == -1) return false;
@@ -140,6 +140,12 @@ class ChildrenProvider with ChangeNotifier {
       );
 
       await _firestoreService.updateChild(updatedChild);
+      
+      // Enregistrer dans l'historique si un taskId est fourni
+      if (taskId != null) {
+        await _firestoreService.recordTaskApplication(taskId, childId);
+      }
+      
       _children[childIndex] = updatedChild;
       notifyListeners();
       return true;

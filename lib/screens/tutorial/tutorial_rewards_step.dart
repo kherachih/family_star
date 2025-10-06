@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/rewards_provider.dart';
+import '../../providers/tutorial_selections_provider.dart';
 import '../../utils/app_colors.dart';
 import '../rewards/add_reward_screen.dart';
 import '../../models/reward.dart';
@@ -97,6 +98,17 @@ class _TutorialRewardsStepState extends State<TutorialRewardsStep> {
     setState(() {
       _isLoading = false;
     });
+    
+    // Stocker les récompenses dans le provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final selectionsProvider = Provider.of<TutorialSelectionsProvider>(context, listen: false);
+      selectionsProvider.setRewards(_suggestedRewards);
+    });
+  }
+
+  void _toggleRewardSelection(String rewardId) {
+    final selectionsProvider = Provider.of<TutorialSelectionsProvider>(context, listen: false);
+    selectionsProvider.toggleRewardSelection(rewardId);
   }
 
   void _navigateToAddReward() async {
@@ -112,38 +124,98 @@ class _TutorialRewardsStepState extends State<TutorialRewardsStep> {
     }
   }
 
-  Future<void> _addSuggestedReward(Reward suggestedReward) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    if (authProvider.currentUser == null) return;
-
-    // Créer une nouvelle récompense basée sur la suggestion
-    final newReward = Reward(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      parentId: authProvider.currentUser!.id,
-      name: suggestedReward.name,
-      description: suggestedReward.description,
-      starsCost: suggestedReward.starsCost,
-    );
-
-    try {
-      // Ajouter la récompense à Firestore
-      await FirestoreService().createReward(newReward);
-      
+  void _goToNextStep() {
+    final selectionsProvider = Provider.of<TutorialSelectionsProvider>(context, listen: false);
+    
+    if (!selectionsProvider.selections.hasSelectedRewards) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Récompense "${newReward.name}" ajoutée avec succès'),
-          backgroundColor: Colors.green,
+        const SnackBar(
+          content: Text('Veuillez sélectionner au moins une récompense'),
+          backgroundColor: Colors.orange,
         ),
       );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      return;
     }
+    
+    // Passer à l'étape suivante
+    widget.onStepCompleted();
+  }
+
+  Widget _buildRewardItem(Reward reward) {
+    final selectionsProvider = Provider.of<TutorialSelectionsProvider>(context);
+    final isSelected = selectionsProvider.selections.selectedRewardIds.contains(reward.id);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: isSelected ? Border.all(color: Colors.blue, width: 2) : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            Icons.card_giftcard,
+            color: Colors.orange,
+          ),
+        ),
+        title: Text(
+          reward.name,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.blue : null,
+          ),
+        ),
+        subtitle: Text(
+          reward.description,
+          style: TextStyle(
+            fontSize: 14,
+            color: isSelected ? Colors.blue.shade700 : Colors.grey[600],
+          ),
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.star,
+                size: 14,
+                color: Colors.orange,
+              ),
+              const SizedBox(width: 2),
+              Text(
+                '${reward.starsCost}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange,
+                ),
+              ),
+            ],
+          ),
+        ),
+        onTap: () => _toggleRewardSelection(reward.id!),
+      ),
+    );
   }
 
   @override
@@ -251,86 +323,7 @@ class _TutorialRewardsStepState extends State<TutorialRewardsStep> {
               child: ListView.builder(
                 itemCount: _suggestedRewards.length,
                 itemBuilder: (context, index) {
-                  final reward = _suggestedRewards[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.card_giftcard,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      title: Text(
-                        reward.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        reward.description,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.star,
-                                  size: 14,
-                                  color: Colors.orange,
-                                ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  '${reward.starsCost}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () => _addSuggestedReward(reward),
-                            icon: const Icon(Icons.add_circle_outline),
-                            color: Colors.orange,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  return _buildRewardItem(_suggestedRewards[index]);
                 },
               ),
             ),
@@ -340,18 +333,22 @@ class _TutorialRewardsStepState extends State<TutorialRewardsStep> {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _navigateToAddReward,
-              icon: const Icon(Icons.add),
-              label: const Text('Créer une récompense personnalisée'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+            child: Consumer<TutorialSelectionsProvider>(
+              builder: (context, selectionsProvider, child) {
+                return ElevatedButton.icon(
+                  onPressed: _goToNextStep,
+                  icon: const Icon(Icons.check),
+                  label: Text('Valider les récompenses sélectionnées (${selectionsProvider.selections.selectedRewardIds.length})'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           
@@ -369,14 +366,14 @@ class _TutorialRewardsStepState extends State<TutorialRewardsStep> {
             child: Row(
               children: [
                 const Icon(
-                  Icons.card_giftcard,
+                  Icons.lightbulb,
                   color: Colors.orange,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Les récompenses motivent les enfants à accomplir leurs tâches !',
+                    'Astuce : Sélectionnez plusieurs récompenses puis validez en une seule fois !',
                     style: TextStyle(
                       color: Colors.orange,
                       fontWeight: FontWeight.w500,

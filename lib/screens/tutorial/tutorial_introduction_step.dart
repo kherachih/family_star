@@ -20,7 +20,7 @@ class TutorialIntroductionStep extends StatelessWidget {
           
           // Titre principal
           const Text(
-            'Bienvenue',
+            'Bienvenue sur Family Star !',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,

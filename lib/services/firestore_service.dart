@@ -32,6 +32,7 @@ class FirestoreService {
   static const String _familyInvitationsCollection = 'family_invitations';
   static const String _supportRequestsCollection = 'support_requests';
   static const String _tutorialStatesCollection = 'tutorial_states';
+  static const String _taskCompletionsCollection = 'task_completions';
 
   // Parent operations
   Future<void> createParent(Parent parent) async {
@@ -280,6 +281,39 @@ class FirestoreService {
     }
   }
 
+  // Obtenir les tâches quotidiennes non complétées par tous les enfants assignés
+  Future<List<Task>> getPendingDailyTasksByParentId(String parentId) async {
+    try {
+      final allDailyTasks = await getDailyTasksByParentId(parentId);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      
+      // Filtrer pour ne garder que les tâches qui ne sont pas complétées par TOUS les enfants
+      final pendingTasks = allDailyTasks.where((task) {
+        // Si la tâche n'a pas de suivi de complétions individuelles, utiliser l'ancienne méthode
+        if (task.dailyCompletions == null || task.dailyCompletions!.isEmpty) {
+          if (task.lastCompletedAt == null) return true;
+          
+          final lastCompletedDate = DateTime(
+            task.lastCompletedAt!.year,
+            task.lastCompletedAt!.month,
+            task.lastCompletedAt!.day,
+          );
+          
+          return lastCompletedDate.isBefore(today);
+        }
+        
+        // Avec le nouveau système, vérifier si tous les enfants ont complété la tâche aujourd'hui
+        return !task.isCompletedTodayByAllChildren();
+      }).toList();
+      
+      return pendingTasks;
+    } catch (e) {
+      debugPrint('Error getting pending daily tasks by parent: $e');
+      return [];
+    }
+  }
+
   Future<List<Task>> getTasksByChildId(String childId) async {
     try {
       final querySnapshot = await _firestore
@@ -334,6 +368,80 @@ class FirestoreService {
         .collection(_tasksCollection)
         .doc(id)
         .delete();
+  }
+
+  // Marquer une tâche quotidienne comme complétée par un enfant spécifique
+  Future<void> markDailyTaskCompletedByChild(String taskId, String childId) async {
+    try {
+      final taskDoc = await _firestore.collection(_tasksCollection).doc(taskId).get();
+      
+      if (!taskDoc.exists) {
+        throw Exception('Tâche non trouvée: $taskId');
+      }
+      
+      final taskData = taskDoc.data()!;
+      final now = DateTime.now();
+      
+      // Récupérer les complétions existantes ou en créer une nouvelle map
+      Map<String, dynamic> dailyCompletions = {};
+      if (taskData['dailyCompletions'] != null) {
+        dailyCompletions = Map<String, dynamic>.from(taskData['dailyCompletions']);
+      }
+      
+      // Ajouter/mettre à jour la complétion pour cet enfant
+      dailyCompletions[childId] = now.toIso8601String();
+      
+      // Mettre à jour la tâche avec les nouvelles complétions
+      await _firestore.collection(_tasksCollection).doc(taskId).update({
+        'dailyCompletions': dailyCompletions,
+        'updatedAt': now.toIso8601String(),
+      });
+      
+      // Créer un enregistrement de complétion pour l'historique
+      final completionId = '${taskId}_${childId}_${now.millisecondsSinceEpoch}';
+      await _firestore.collection(_taskCompletionsCollection).doc(completionId).set({
+        'id': completionId,
+        'taskId': taskId,
+        'childId': childId,
+        'completedAt': now.toIso8601String(),
+        'taskData': taskData,
+      });
+      
+      debugPrint('Tâche quotidienne $taskId marquée comme complétée par l\'enfant $childId');
+    } catch (e) {
+      debugPrint('Erreur lors du marquage de la tâche comme complétée: $e');
+      rethrow;
+    }
+  }
+
+  // Enregistrer une tâche appliquée dans l'historique
+  Future<void> recordTaskApplication(String taskId, String childId) async {
+    try {
+      final taskDoc = await _firestore.collection(_tasksCollection).doc(taskId).get();
+      
+      if (!taskDoc.exists) {
+        throw Exception('Tâche non trouvée: $taskId');
+      }
+      
+      final taskData = taskDoc.data()!;
+      final task = Task.fromMap(taskData);
+      final now = DateTime.now();
+      
+      // Créer un enregistrement de complétion pour l'historique
+      final completionId = '${taskId}_${childId}_${now.millisecondsSinceEpoch}';
+      await _firestore.collection(_taskCompletionsCollection).doc(completionId).set({
+        'id': completionId,
+        'taskId': taskId,
+        'childId': childId,
+        'completedAt': now.toIso8601String(),
+        'taskData': taskData,
+      });
+      
+      debugPrint('Tâche $taskId enregistrée dans l\'historique pour l\'enfant $childId');
+    } catch (e) {
+      debugPrint('Erreur lors de l\'enregistrement de la tâche dans l\'historique: $e');
+      rethrow;
+    }
   }
 
   // Star Loss operations
@@ -628,9 +736,31 @@ class FirestoreService {
       final child = Child.fromMap(childDoc.data()!);
       final parentId = child.familyId; // Utiliser familyId au lieu de parentId
       
-      // Récupérer toutes les tâches du parent, puis filtrer localement
+      // Récupérer les complétions de tâches quotidiennes pour cet enfant (NOUVEAU SYSTÈME)
+      final taskCompletionsQuery = _firestore
+          .collection(_taskCompletionsCollection)
+          .where('childId', isEqualTo: childId)
+          .orderBy('completedAt', descending: true);
+      
+      final taskCompletionsSnapshot = startAfter != null
+          ? await taskCompletionsQuery.startAfter([Timestamp.fromDate(startAfter)]).limit(limit).get()
+          : await taskCompletionsQuery.limit(limit).get();
+      
+      final taskCompletions = taskCompletionsSnapshot.docs.map((doc) {
+        final data = doc.data();
+        final taskData = data['taskData'] as Map<String, dynamic>;
+        final task = Task.fromMap(taskData);
+        final completedAt = data['completedAt'] is String
+            ? DateTime.parse(data['completedAt'] as String)
+            : (data['completedAt'] as Timestamp).toDate();
+        
+        return HistoryItem.fromTaskCompletion(task, childId, completedAt);
+      }).toList();
+
+      // Récupérer les tâches non quotidiennes (ANCIEN SYSTÈME)
       final allTasks = await getTasksByParentId(parentId);
-      final tasks = allTasks
+      final nonDailyTasks = allTasks
+          .where((task) => !task.isDaily)
           .where((task) => task.childIds.contains(childId))
           .where((task) => startAfter == null || task.createdAt.isBefore(startAfter!))
           .take(limit)
@@ -684,7 +814,8 @@ class FirestoreService {
 
       // Combiner tous les éléments d'historique
       final allHistoryItems = <HistoryItem>[
-        ...tasks,
+        ...taskCompletions,  // Tâches quotidiennes du nouveau système
+        ...nonDailyTasks,    // Tâches non quotidiennes de l'ancien système
         ...starLosses,
         ...rewardExchanges,
         ...sanctionsApplied,
@@ -731,6 +862,13 @@ class FirestoreService {
               .snapshots()
               .listen((_) => updateHistory());
               
+          // NOUVEAU: Écouter les complétions de tâches quotidiennes
+          final taskCompletionsSubscription = _firestore
+              .collection(_taskCompletionsCollection)
+              .where('childId', isEqualTo: childId)
+              .snapshots()
+              .listen((_) => updateHistory());
+              
           final starLossesSubscription = _firestore
               .collection(_starLossesCollection)
               .where('childId', isEqualTo: childId)
@@ -752,6 +890,7 @@ class FirestoreService {
           // Nettoyer les ressources lorsque le stream est fermé
           controller.onCancel = () {
             tasksSubscription.cancel();
+            taskCompletionsSubscription.cancel(); // NOUVEAU
             starLossesSubscription.cancel();
             rewardExchangesSubscription.cancel();
             sanctionsAppliedSubscription.cancel();

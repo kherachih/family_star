@@ -402,18 +402,8 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   }
 
   Widget _buildTaskCard(Task task) {
-    // Vérifier si la tâche quotidienne a été complétée aujourd'hui
-    bool isCompletedToday = false;
-    if (task.isDaily && task.lastCompletedAt != null) {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final lastCompletedDate = DateTime(
-        task.lastCompletedAt!.year,
-        task.lastCompletedAt!.month,
-        task.lastCompletedAt!.day,
-      );
-      isCompletedToday = lastCompletedDate == today;
-    }
+    // Vérifier si la tâche quotidienne a été complétée par tous les enfants aujourd'hui
+    bool isCompletedToday = task.isDaily ? task.isCompletedTodayByAllChildren() : false;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -447,15 +437,43 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                   color: isCompletedToday ? Colors.grey[500] : null,
                 ),
               ),
-            if (task.isDaily)
+            if (task.isDaily) ...[
               Text(
-                'Tâche quotidienne${isCompletedToday ? ' - Complétée aujourd\'hui' : ''}',
+                'Tâche quotidienne',
                 style: TextStyle(
                   fontSize: 12,
                   color: isCompletedToday ? Colors.grey[500] : Colors.blue,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              if (task.childIds.length > 1) ...[
+                // Afficher l'état de complétion pour les tâches multi-enfants
+                Builder(
+                  builder: (context) {
+                    final completedCount = task.getChildrenCompletedToday().length;
+                    final totalCount = task.childIds.length;
+                    return Text(
+                      'Progression: $completedCount/$totalCount enfant(s) ont complété la tâche',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: completedCount == totalCount
+                            ? Colors.green
+                            : (completedCount > 0 ? Colors.orange : Colors.grey),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    );
+                  },
+                ),
+              ] else if (task.childIds.isNotEmpty && task.isCompletedTodayByChild(task.childIds.first))
+                Text(
+                  'Complétée aujourd\'hui',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+            ],
           ],
         ),
         trailing: PopupMenuButton<String>(

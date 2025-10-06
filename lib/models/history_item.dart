@@ -45,6 +45,23 @@ class HistoryItem {
       data: task.toMap(),
     );
   }
+  
+  // Factory pour créer un HistoryItem à partir d'une tâche complétée par un enfant
+  factory HistoryItem.fromTaskCompletion(Task task, String childId, DateTime completionDate) {
+    return HistoryItem(
+      id: '${task.id}_$childId',
+      type: HistoryItemType.task,
+      timestamp: completionDate,
+      title: task.title,
+      description: task.description,
+      starChange: task.starChange,
+      data: {
+        ...task.toMap(),
+        'childId': childId,
+        'completionDate': completionDate.toIso8601String(),
+      },
+    );
+  }
 
   // Factory pour créer un HistoryItem à partir d'une perte d'étoiles
   factory HistoryItem.fromStarLoss(StarLoss starLoss) {
