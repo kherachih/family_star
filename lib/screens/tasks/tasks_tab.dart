@@ -131,26 +131,56 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       ],
                     ),
                     const SizedBox(height: 24),
-                    // TabBar personnalisé
+                    // TabBar personnalisé amélioré
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
+                        ),
                       ),
                       child: TabBar(
                         controller: _tabController,
                         indicator: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withOpacity(0.95),
+                              Colors.white.withOpacity(0.85),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        labelColor: AppColors.secondary,
-                        unselectedLabelColor: Colors.white70,
-                        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                        labelColor: AppColors.textPrimary, // Couleur plus foncée pour meilleure lisibilité
+                        unselectedLabelColor: Colors.white, // Blanc pur pour les onglets non sélectionnés
+                        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        dividerColor: Colors.transparent, // Supprime le trait sous les onglets
                         tabs: const [
-                          Tab(text: 'Tâches'),
-                          Tab(text: 'Récompenses'),
-                          Tab(text: 'Sanctions'),
+                          Tab(
+                            icon: Icon(Icons.task_alt_rounded, size: 20),
+                            text: 'Tâches',
+                            iconMargin: EdgeInsets.only(bottom: 4),
+                          ),
+                          Tab(
+                            icon: Icon(Icons.card_giftcard_rounded, size: 20),
+                            text: 'Récompenses',
+                            iconMargin: EdgeInsets.only(bottom: 4),
+                          ),
+                          Tab(
+                            icon: Icon(Icons.block_rounded, size: 20),
+                            text: 'Sanctions',
+                            iconMargin: EdgeInsets.only(bottom: 4),
+                          ),
                         ],
                       ),
                     ),
@@ -159,14 +189,68 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
               ),
             ),
           ),
-          // Contenu des onglets
+          // Contenu des onglets avec animation
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildTasksSection(),
-                _buildRewardsSection(),
-                _buildSanctionsSection(),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.0, 0.1),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        )),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: _buildTasksSection(),
+                ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.0, 0.1),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        )),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: _buildRewardsSection(),
+                ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.0, 0.1),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        )),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: _buildSanctionsSection(),
+                ),
               ],
             ),
           ),
@@ -308,42 +392,140 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 64, color: color),
+            // Animation de l'icône
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 800),
+              tween: Tween(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          color.withOpacity(0.15),
+                          color.withOpacity(0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Icon(icon, size: 64, color: color),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
+            const SizedBox(height: 32),
+            // Titre avec animation
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 600),
+              tween: Tween(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, 20 * (1 - value)),
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
+            const SizedBox(height: 12),
+            // Sous-titre avec animation
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 800),
+              tween: Tween(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, 20 * (1 - value)),
+                    child: Text(
+                      subtitle,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: AppColors.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: onPressed,
-              icon: const Icon(Icons.add),
-              label: Text(buttonText),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: color,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
+            const SizedBox(height: 32),
+            // Bouton avec animation et dégradé
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 1000),
+              tween: Tween(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: 0.9 + (0.1 * value),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          color,
+                          color.withOpacity(0.8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: onPressed,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                buttonText,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -357,157 +539,304 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     required List<Color> gradient,
     required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradient,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: gradient.first.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: Colors.white),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 300),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: 0.95 + (0.05 * value),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: gradient,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: gradient.first.withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+                BoxShadow(
+                  color: gradient.last.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, color: Colors.white, size: 22),
+                      const SizedBox(width: 12),
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   Widget _buildTaskCard(Task task) {
     // Vérifier si la tâche quotidienne a été complétée par tous les enfants aujourd'hui
     bool isCompletedToday = task.isDaily ? task.isCompletedTodayByAllChildren() : false;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      color: isCompletedToday ? Colors.grey[100] : null,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: isCompletedToday
-              ? Colors.grey[300]
-              : task.type == TaskType.positive ? Colors.green[100] : Colors.red[100],
-          child: Icon(
-            task.type == TaskType.positive ? Icons.add_circle : Icons.remove_circle,
+    
+    // Animation pour l'effet de survol
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: isCompletedToday
+            ? LinearGradient(
+                colors: [Colors.grey[100]!, Colors.grey[50]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : LinearGradient(
+                colors: [Colors.white, Colors.white],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        boxShadow: [
+          BoxShadow(
             color: isCompletedToday
-                ? Colors.grey[600]
-                : task.type == TaskType.positive ? Colors.green : Colors.red,
+                ? Colors.grey.withOpacity(0.2)
+                : (task.type == TaskType.positive
+                    ? AppColors.taskPositive.withOpacity(0.15)
+                    : AppColors.taskNegative.withOpacity(0.15)),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-        ),
-        title: Text(
-          task.title,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: isCompletedToday ? Colors.grey[600] : null,
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
+        ],
+        border: Border.all(
+          color: isCompletedToday
+              ? Colors.grey[300]!
+              : (task.type == TaskType.positive
+                  ? AppColors.taskPositive.withOpacity(0.3)
+                  : AppColors.taskNegative.withOpacity(0.3)),
+          width: 1,
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (task.description != null)
-              Text(
-                task.description!,
-                style: TextStyle(
-                  color: isCompletedToday ? Colors.grey[500] : null,
-                ),
-              ),
-            if (task.isDaily) ...[
-              Text(
-                'Tâche quotidienne',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isCompletedToday ? Colors.grey[500] : Colors.blue,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (task.childIds.length > 1) ...[
-                // Afficher l'état de complétion pour les tâches multi-enfants
-                Builder(
-                  builder: (context) {
-                    final completedCount = task.getChildrenCompletedToday().length;
-                    final totalCount = task.childIds.length;
-                    return Text(
-                      'Progression: $completedCount/$totalCount enfant(s) ont complété la tâche',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: completedCount == totalCount
-                            ? Colors.green
-                            : (completedCount > 0 ? Colors.orange : Colors.grey),
-                        fontWeight: FontWeight.w600,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: isCompletedToday ? null : () => _showTaskDetails(task),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icône améliorée avec animation
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isCompletedToday
+                          ? [Colors.grey[300]!, Colors.grey[400]!]
+                          : (task.type == TaskType.positive
+                              ? [AppColors.taskPositive.withOpacity(0.8), AppColors.taskPositive]
+                              : [AppColors.taskNegative.withOpacity(0.8), AppColors.taskNegative]),
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isCompletedToday
+                            ? Colors.grey.withOpacity(0.3)
+                            : (task.type == TaskType.positive
+                                ? AppColors.taskPositive.withOpacity(0.3)
+                                : AppColors.taskNegative.withOpacity(0.3)),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
-                    );
-                  },
-                ),
-              ] else if (task.childIds.isNotEmpty && task.isCompletedTodayByChild(task.childIds.first))
-                Text(
-                  'Complétée aujourd\'hui',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
+                    ],
+                  ),
+                  child: Icon(
+                    task.type == TaskType.positive ? Icons.add_circle_rounded : Icons.remove_circle_rounded,
+                    color: Colors.white,
+                    size: 24,
                   ),
                 ),
-            ],
-          ],
-        ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (value) async {
-            if (value == 'edit') {
-              await _navigateToEditTask(task);
-            } else if (value == 'delete') {
-              await _deleteTask(task);
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'edit',
-              child: Row(
-                children: [
-                  Icon(Icons.edit),
-                  SizedBox(width: 8),
-                  Text('Modifier'),
-                ],
-              ),
+                const SizedBox(width: 16),
+                // Contenu principal
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              task.title,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isCompletedToday ? Colors.grey[600] : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          // Badge d'étoiles
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: task.type == TaskType.positive
+                                    ? [AppColors.starPositive, AppColors.starPositive.withOpacity(0.8)]
+                                    : [AppColors.starNegative, AppColors.starNegative.withOpacity(0.8)],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '${task.type == TaskType.positive ? "+" : "-"}${task.stars}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (task.description != null)
+                        Text(
+                          task.description!,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isCompletedToday ? Colors.grey[500] : AppColors.textSecondary,
+                          ),
+                        ),
+                      if (task.isDaily) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isCompletedToday ? Colors.grey[200] : Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Tâche quotidienne',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isCompletedToday ? Colors.grey[600] : Colors.blue[700],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (task.childIds.length > 1) ...[
+                          const SizedBox(height: 4),
+                          // Afficher l'état de complétion pour les tâches multi-enfants
+                          Builder(
+                            builder: (context) {
+                              final completedCount = task.getChildrenCompletedToday().length;
+                              final totalCount = task.childIds.length;
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: completedCount == totalCount
+                                      ? Colors.green.withOpacity(0.1)
+                                      : (completedCount > 0 ? Colors.orange.withOpacity(0.1) : Colors.grey.withOpacity(0.1)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'Progression: $completedCount/$totalCount',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: completedCount == totalCount
+                                        ? Colors.green[700]
+                                        : (completedCount > 0 ? Colors.orange[700] : Colors.grey[600]),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ] else if (task.childIds.isNotEmpty && task.isCompletedTodayByChild(task.childIds.first))
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Complétée aujourd\'hui',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.green[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Menu d'options
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert, color: isCompletedToday ? Colors.grey[400] : AppColors.textSecondary),
+                  onSelected: (value) async {
+                    if (value == 'edit') {
+                      await _navigateToEditTask(task);
+                    } else if (value == 'delete') {
+                      await _deleteTask(task);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 20, color: AppColors.textSecondary),
+                          const SizedBox(width: 12),
+                          const Text('Modifier'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline, size: 20, color: AppColors.taskNegative),
+                          const SizedBox(width: 12),
+                          Text('Supprimer', style: TextStyle(color: AppColors.taskNegative)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Supprimer', style: TextStyle(color: Colors.red)),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
-        onTap: isCompletedToday ? null : () => _showTaskDetails(task),
       ),
     );
   }
@@ -608,57 +937,303 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   }
 
   Widget _buildRewardCard(Reward reward) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: Colors.amber,
-          child: Icon(Icons.card_giftcard, color: Colors.white),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        title: Text(reward.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(reward.description),
-        trailing: Text(
-          '${reward.starsCost} ⭐',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.amber,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.starPositive.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: AppColors.starPositive.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _navigateToAddRewardScreen(reward: reward),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icône améliorée avec animation
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.starPositive.withOpacity(0.8), AppColors.starPositive],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.starPositive.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.card_giftcard_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Contenu principal
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              reward.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          // Badge d'étoiles
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [AppColors.starPositive, AppColors.starPositive.withOpacity(0.8)],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '${reward.starsCost} ⭐',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        reward.description,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Menu d'options
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+                  onSelected: (value) async {
+                    if (value == 'edit') {
+                      await _navigateToAddRewardScreen(reward: reward);
+                    } else if (value == 'delete') {
+                      // Implémenter la suppression si nécessaire
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 20, color: AppColors.textSecondary),
+                          const SizedBox(width: 12),
+                          const Text('Modifier'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-        onTap: () => _navigateToAddRewardScreen(reward: reward),
       ),
     );
   }
 
   Widget _buildSanctionCard(Sanction sanction) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: Colors.red,
-          child: Icon(Icons.block, color: Colors.white),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        title: Text(sanction.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(sanction.description),
-            if (sanction.durationText != null)
-              Text(
-                'Durée: ${sanction.durationText}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-          ],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.taskNegative.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: AppColors.taskNegative.withOpacity(0.3),
+          width: 1,
         ),
-        trailing: Text(
-          '-${sanction.starsCost} ⭐',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.red,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _navigateToAddSanctionScreen(sanction: sanction),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icône améliorée avec animation
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.taskNegative.withOpacity(0.8), AppColors.taskNegative],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.taskNegative.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.block_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Contenu principal
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              sanction.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          // Badge d'étoiles
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [AppColors.taskNegative, AppColors.taskNegative.withOpacity(0.8)],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '-${sanction.starsCost} ⭐',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        sanction.description,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      if (sanction.durationText != null) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.taskNegative.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Durée: ${sanction.durationText}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.taskNegative,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Menu d'options
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+                  onSelected: (value) async {
+                    if (value == 'edit') {
+                      await _navigateToAddSanctionScreen(sanction: sanction);
+                    } else if (value == 'delete') {
+                      // Implémenter la suppression si nécessaire
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 20, color: AppColors.textSecondary),
+                          const SizedBox(width: 12),
+                          const Text('Modifier'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-        onTap: () => _navigateToAddSanctionScreen(sanction: sanction),
       ),
     );
   }
