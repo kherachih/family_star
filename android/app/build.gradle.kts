@@ -56,4 +56,7 @@ flutter {
 dependencies {
     // Add core library desugaring dependency
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    
+    // Google Mobile Ads dependency
+    implementation("com.google.android.gms:play-services-ads:23.0.0")
 }

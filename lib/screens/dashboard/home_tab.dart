@@ -6,6 +6,7 @@ import '../../providers/family_provider.dart';
 import '../../models/child.dart';
 import '../../models/task.dart';
 import '../../services/firestore_service.dart';
+import '../../services/auto_ad_service.dart';
 import '../../utils/app_colors.dart';
 import '../children/child_profile_screen.dart';
 
@@ -25,6 +26,8 @@ class _HomeTabState extends State<HomeTab> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
+      // Notifier AutoAdService que nous sommes sur l'écran d'accueil
+      AutoAdService().onScreenChanged('home');
     });
   }
 
@@ -76,15 +79,19 @@ class _HomeTabState extends State<HomeTab> {
                 // Header d'accueil sans AppBar
                 Container(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: AppColors.gradientHero,
+                      colors: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkGradientHero
+                          : AppColors.gradientHero,
                     ),
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkPrimary.withOpacity(0.3)
+                            : AppColors.primary.withOpacity(0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -143,12 +150,14 @@ class _HomeTabState extends State<HomeTab> {
                 ),
                 const SizedBox(height: 24),
                 // Mes Enfants - Slider
-                const Text(
+                Text(
                   'Mes Enfants',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -178,12 +187,14 @@ class _HomeTabState extends State<HomeTab> {
                 const SizedBox(height: 32),
 
                 // Tâches quotidiennes
-                const Text(
+                Text(
                   'Tâches quotidiennes',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -210,11 +221,15 @@ class _HomeTabState extends State<HomeTab> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: AppColors.gradientPrimary.map((c) => c.withOpacity(0.1)).toList(),
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.darkGradientPrimary.map((c) => c.withOpacity(0.1)).toList()
+              : AppColors.gradientPrimary.map((c) => c.withOpacity(0.1)).toList(),
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.3),
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.darkPrimary.withOpacity(0.3)
+              : AppColors.primary.withOpacity(0.3),
           width: 2,
         ),
       ),
@@ -222,21 +237,25 @@ class _HomeTabState extends State<HomeTab> {
         children: [
           Icon(Icons.child_friendly, size: 48, color: AppColors.primary.withOpacity(0.5)),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Aucun enfant ajouté',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Allez dans l\'onglet Enfants pour en ajouter',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.textSecondary,
             ),
           ),
         ],
@@ -251,13 +270,20 @@ class _HomeTabState extends State<HomeTab> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            AppColors.primary.withOpacity(0.05),
-          ],
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? [
+                  AppColors.darkCard,
+                  AppColors.darkSurface,
+                ]
+              : [
+                  Colors.white,
+                  AppColors.primary.withOpacity(0.05),
+                ],
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [AppColors.cardShadow],
+        boxShadow: Theme.of(context).brightness == Brightness.dark
+            ? [AppColors.darkCardShadow]
+            : [AppColors.cardShadow],
       ),
       child: Material(
         color: Colors.transparent,
@@ -279,15 +305,19 @@ class _HomeTabState extends State<HomeTab> {
                   width: 70,
                   height: 70,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: AppColors.gradientHero,
+                      colors: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkGradientHero
+                          : AppColors.gradientHero,
                     ),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkPrimary.withOpacity(0.3)
+                            : AppColors.primary.withOpacity(0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -309,18 +339,22 @@ class _HomeTabState extends State<HomeTab> {
                     children: [
                       Text(
                         child.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${child.age} ans',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textSecondary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -374,13 +408,17 @@ class _HomeTabState extends State<HomeTab> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkPrimary.withOpacity(0.1)
+                        : AppColors.primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 16,
-                    color: AppColors.primary,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkPrimary
+                        : AppColors.primary,
                   ),
                 ),
               ],
@@ -398,11 +436,15 @@ class _HomeTabState extends State<HomeTab> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: AppColors.gradientSecondary.map((c) => c.withOpacity(0.1)).toList(),
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.darkGradientSecondary.map((c) => c.withOpacity(0.1)).toList()
+              : AppColors.gradientSecondary.map((c) => c.withOpacity(0.1)).toList(),
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.secondary.withOpacity(0.3),
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.darkSecondary.withOpacity(0.3)
+              : AppColors.secondary.withOpacity(0.3),
           width: 2,
         ),
       ),
@@ -410,21 +452,25 @@ class _HomeTabState extends State<HomeTab> {
         children: [
           Icon(Icons.event_busy, size: 48, color: AppColors.secondary.withOpacity(0.5)),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Pas de tâches quotidiennes',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Ajoutez des tâches quotidiennes dans l\'onglet Tâches',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.textSecondary,
             ),
           ),
         ],
@@ -454,12 +500,19 @@ class _HomeTabState extends State<HomeTab> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            task.type == TaskType.positive
-                ? Colors.green.withOpacity(0.05)
-                : Colors.red.withOpacity(0.05),
-          ],
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? [
+                  AppColors.darkCard,
+                  task.type == TaskType.positive
+                      ? AppColors.darkTaskBackgroundPositive
+                      : AppColors.darkTaskBackgroundNegative,
+                ]
+              : [
+                  Colors.white,
+                  task.type == TaskType.positive
+                      ? Colors.green.withOpacity(0.05)
+                      : Colors.red.withOpacity(0.05),
+                ],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -471,8 +524,12 @@ class _HomeTabState extends State<HomeTab> {
         ],
         border: Border.all(
           color: task.type == TaskType.positive
-              ? Colors.green.withOpacity(0.2)
-              : Colors.red.withOpacity(0.2),
+              ? (Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkTaskPositive.withOpacity(0.2)
+                  : Colors.green.withOpacity(0.2))
+              : (Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkTaskNegative.withOpacity(0.2)
+                  : Colors.red.withOpacity(0.2)),
         ),
       ),
       child: InkWell(
@@ -484,8 +541,12 @@ class _HomeTabState extends State<HomeTab> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: task.type == TaskType.positive
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.red.withOpacity(0.1),
+                    ? (Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTaskPositive.withOpacity(0.1)
+                        : Colors.green.withOpacity(0.1))
+                    : (Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTaskNegative.withOpacity(0.1)
+                        : Colors.red.withOpacity(0.1)),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -493,8 +554,12 @@ class _HomeTabState extends State<HomeTab> {
                     ? Icons.add_circle
                     : Icons.remove_circle,
                 color: task.type == TaskType.positive
-                    ? Colors.green
-                    : Colors.red,
+                    ? (Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTaskPositive
+                        : Colors.green)
+                    : (Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTaskNegative
+                        : Colors.red),
               ),
             ),
             const SizedBox(width: 12),
@@ -504,10 +569,12 @@ class _HomeTabState extends State<HomeTab> {
                 children: [
                   Text(
                     task.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -517,8 +584,12 @@ class _HomeTabState extends State<HomeTab> {
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: task.type == TaskType.positive
-                          ? Colors.green
-                          : Colors.red,
+                          ? (Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTaskPositive
+                              : Colors.green)
+                          : (Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTaskNegative
+                              : Colors.red),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -531,12 +602,16 @@ class _HomeTabState extends State<HomeTab> {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: isCompleted
-                              ? Colors.green.withOpacity(0.1)
+                              ? (Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkTaskBackgroundPositive
+                                  : Colors.green.withOpacity(0.1))
                               : AppColors.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isCompleted
-                                ? Colors.green.withOpacity(0.3)
+                                ? (Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTaskPositive.withOpacity(0.3)
+                                    : Colors.green.withOpacity(0.3))
                                 : AppColors.primary.withOpacity(0.3),
                           ),
                         ),
@@ -553,16 +628,20 @@ class _HomeTabState extends State<HomeTab> {
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isCompleted
-                                    ? Colors.green
+                                    ? (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkTaskPositive
+                                        : Colors.green)
                                     : AppColors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             if (isCompleted) ...[
                               const SizedBox(width: 4),
-                              const Icon(
+                              Icon(
                                 Icons.check_circle,
-                                color: Colors.green,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTaskPositive
+                                    : Colors.green,
                                 size: 14,
                               ),
                             ],

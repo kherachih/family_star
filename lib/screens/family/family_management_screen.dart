@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 import '../../services/firestore_service.dart';
@@ -58,7 +59,7 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text('common.error'.tr() + ': ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -98,27 +99,47 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
   void _showLeaveFamilyDialog() {
     final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
     final family = familyProvider.currentFamily;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? AppColors.darkSurface : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Quitter la famille'),
+        title: Text(
+          'ui.family_management.leave_confirm_title'.tr(),
+          style: TextStyle(
+            color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Êtes-vous sûr de vouloir quitter cette famille ?'),
+            Text(
+              'ui.family_management.leave_confirm_message'.tr(),
+              style: TextStyle(
+                color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+              ),
+            ),
             const SizedBox(height: 16),
             Text(
-              'Vous ne pourrez plus voir les enfants et les tâches de la famille "${family?.name}".',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              'ui.family_management.leave_warning'.tr(args: [family?.name ?? '']),
+              style: TextStyle(
+                fontSize: 14,
+                color: isDarkMode ? AppColors.darkTextSecondary : Colors.grey,
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(
+              'common.cancel'.tr(),
+              style: TextStyle(
+                color: isDarkMode ? AppColors.darkTextSecondary : Colors.black,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -129,7 +150,7 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Quitter'),
+            child: Text('ui.family_management.leave_family'.tr()),
           ),
         ],
       ),
@@ -139,24 +160,39 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
   void _showDeleteFamilyDialog() {
     final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
     final family = familyProvider.currentFamily;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? AppColors.darkSurface : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Supprimer la famille'),
+        title: Text(
+          'ui.family_management.delete_confirm_title'.tr(),
+          style: TextStyle(
+            color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Vous êtes le seul membre de cette famille.'),
-            const SizedBox(height: 8),
             Text(
-              'Si vous partez, la famille "${family?.name}" sera supprimée définitivement.',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              'ui.family_management.delete_owner_message'.tr(),
+              style: TextStyle(
+                color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+              ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Toutes les données associées (enfants, tâches, etc.) seront perdues.',
+            Text(
+              'ui.family_management.delete_warning'.tr(args: [family?.name ?? '']),
+              style: TextStyle(
+                fontSize: 14,
+                color: isDarkMode ? AppColors.darkTextSecondary : Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'ui.family_management.delete_data_warning'.tr(),
               style: TextStyle(fontSize: 14, color: Colors.red, fontWeight: FontWeight.w500),
             ),
           ],
@@ -164,7 +200,12 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(
+              'common.cancel'.tr(),
+              style: TextStyle(
+                color: isDarkMode ? AppColors.darkTextSecondary : Colors.black,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -175,7 +216,7 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Supprimer'),
+            child: Text('ui.family_management.delete_family'.tr()),
           ),
         ],
       ),
@@ -187,31 +228,64 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
     final family = familyProvider.currentFamily;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final currentUser = authProvider.currentUser;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? AppColors.darkSurface : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Transférer la propriété'),
+        title: Text(
+          'ui.family_management.transfer_confirm_title'.tr(),
+          style: TextStyle(
+            color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Vous êtes le créateur de cette famille.'),
+            Text(
+              'ui.family_management.transfer_owner_message'.tr(),
+              style: TextStyle(
+                color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
-              'Avant de quitter la famille "${family?.name}", vous devez transférer la propriété à un autre parent.',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              'ui.family_management.transfer_warning'.tr(args: [family?.name ?? '']),
+              style: TextStyle(
+                fontSize: 14,
+                color: isDarkMode ? AppColors.darkTextSecondary : Colors.grey,
+              ),
             ),
             const SizedBox(height: 16),
-            const Text('Sélectionnez un nouveau propriétaire :'),
+            Text(
+              'ui.family_management.select_new_owner'.tr(),
+              style: TextStyle(
+                color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+              ),
+            ),
             const SizedBox(height: 8),
             // Liste des autres parents
             ..._parents
                 .where((parent) => parent.id != currentUser?.id)
                 .map((parent) => ListTile(
-                      title: Text(parent.name),
-                      subtitle: Text(parent.email),
-                      leading: const Icon(Icons.person),
+                      title: Text(
+                        parent.name,
+                        style: TextStyle(
+                          color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+                        ),
+                      ),
+                      subtitle: Text(
+                        parent.email,
+                        style: TextStyle(
+                          color: isDarkMode ? AppColors.darkTextSecondary : Colors.grey,
+                        ),
+                      ),
+                      leading: Icon(
+                        Icons.person,
+                        color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+                      ),
                       onTap: () {
                         Navigator.pop(context);
                         _transferOwnership(parent.id);
@@ -223,7 +297,12 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(
+              'common.cancel'.tr(),
+              style: TextStyle(
+                color: isDarkMode ? AppColors.darkTextSecondary : Colors.black,
+              ),
+            ),
           ),
         ],
       ),
@@ -243,12 +322,12 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const AlertDialog(
+        builder: (context) => AlertDialog(
           content: Row(
             children: [
               CircularProgressIndicator(),
               SizedBox(width: 16),
-              Text('Quitter la famille...'),
+              Text('ui.family_management.leaving_family'.tr()),
             ],
           ),
         ),
@@ -265,8 +344,8 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Vous avez quitté la famille'),
+            SnackBar(
+              content: Text('ui.family_management.family_left_success'.tr()),
               backgroundColor: Colors.green,
             ),
           );
@@ -275,8 +354,8 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erreur lors du départ de la famille'),
+            SnackBar(
+              content: Text('ui.family_management.error_leaving_family'.tr()),
               backgroundColor: Colors.red,
             ),
           );
@@ -288,7 +367,7 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text('common.error'.tr() + ': ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -309,12 +388,12 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const AlertDialog(
+        builder: (context) => AlertDialog(
           content: Row(
             children: [
               CircularProgressIndicator(),
               SizedBox(width: 16),
-              Text('Suppression de la famille...'),
+              Text('ui.family_management.deleting_family'.tr()),
             ],
           ),
         ),
@@ -332,8 +411,8 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('La famille a été supprimée'),
+            SnackBar(
+              content: Text('ui.family_management.family_deleted_success'.tr()),
               backgroundColor: Colors.green,
             ),
           );
@@ -342,8 +421,8 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erreur lors de la suppression de la famille'),
+            SnackBar(
+              content: Text('ui.family_management.error_deleting_family'.tr()),
               backgroundColor: Colors.red,
             ),
           );
@@ -355,7 +434,7 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text('common.error'.tr() + ': ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -374,12 +453,12 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const AlertDialog(
+        builder: (context) => AlertDialog(
           content: Row(
             children: [
               CircularProgressIndicator(),
               SizedBox(width: 16),
-              Text('Transfert de la propriété...'),
+              Text('ui.family_management.transferring_ownership'.tr()),
             ],
           ),
         ),
@@ -396,8 +475,8 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('La propriété a été transférée'),
+          SnackBar(
+            content: Text('ui.family_management.ownership_transferred_success'.tr()),
             backgroundColor: Colors.green,
           ),
         );
@@ -411,10 +490,120 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text('common.error'.tr() + ': ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
+      }
+    }
+  }
+
+  Future<void> _showDeleteChildDialog(Child child) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.darkSurface
+            : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'ui.family_management.delete_child_title'.tr(),
+          style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkTextPrimary
+                : Colors.black,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'ui.family_management.delete_child_message'.tr(args: [child.name]),
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextPrimary
+                    : Colors.black,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'ui.family_management.delete_child_warning'.tr(),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.red,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'common.cancel'.tr(),
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextSecondary
+                    : Colors.black,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('ui.family_management.delete_child'.tr()),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        // Afficher un indicateur de chargement
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text('ui.family_management.deleting_child'.tr()),
+              ],
+            ),
+          ),
+        );
+
+        // Supprimer l'enfant
+        await _firestoreService.deleteChild(child.id);
+        
+        Navigator.pop(context); // Fermer le dialogue de chargement
+        
+        // Recharger les membres de la famille
+        await _loadFamilyMembers();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('ui.family_management.child_deleted_success'.tr(args: [child.name])),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        Navigator.pop(context); // Fermer le dialogue de chargement en cas d'erreur
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('common.error'.tr() + ': ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -428,7 +617,7 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestion de la famille'),
+        title: Text('ui.family_management.title'.tr()),
         backgroundColor: Colors.transparent,
         elevation: 0,
         flexibleSpace: Container(
@@ -448,10 +637,15 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : family == null
-              ? const Center(
+              ? Center(
                   child: Text(
-                    'Aucune famille trouvée',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                    'ui.family_management.no_family_found'.tr(),
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextSecondary
+                          : Colors.grey,
+                    ),
                   ),
                 )
               : SingleChildScrollView(
@@ -503,7 +697,11 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'Créée le ${family.createdAt.day}/${family.createdAt.month}/${family.createdAt.year}',
+                              'ui.family_management.created_on'.tr(args: [
+                                family.createdAt.day.toString(),
+                                family.createdAt.month.toString(),
+                                family.createdAt.year.toString()
+                              ]),
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 14,
@@ -517,9 +715,9 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
                                   color: Colors.white.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Text(
-                                  'Propriétaire',
-                                  style: TextStyle(
+                                child: Text(
+                                  'ui.family_management.owner'.tr(),
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
@@ -532,12 +730,14 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
                       const SizedBox(height: 24),
 
                       // Liste des parents
-                      const Text(
-                        'Parents',
+                      Text(
+                        'ui.family_management.parents'.tr(),
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -545,16 +745,27 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
                           ? Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.grey[100],
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkCard
+                                    : Colors.grey[100],
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.person_outline, color: Colors.grey[600]),
+                                  Icon(
+                                    Icons.person_outline,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkTextSecondary
+                                        : Colors.grey[600],
+                                  ),
                                   const SizedBox(width: 12),
                                   Text(
-                                    'Aucun parent dans la famille',
-                                    style: TextStyle(color: Colors.grey[600]),
+                                    'ui.family_management.no_parent_in_family'.tr(),
+                                    style: TextStyle(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkTextSecondary
+                                          : Colors.grey[600],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -577,12 +788,14 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
                       const SizedBox(height: 24),
 
                       // Liste des enfants
-                      const Text(
-                        'Enfants',
+                      Text(
+                        'ui.family_management.children'.tr(),
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -590,16 +803,27 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
                           ? Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.grey[100],
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkCard
+                                    : Colors.grey[100],
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.child_care, color: Colors.grey[600]),
+                                  Icon(
+                                    Icons.child_care,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkTextSecondary
+                                        : Colors.grey[600],
+                                  ),
                                   const SizedBox(width: 12),
                                   Text(
-                                    'Aucun enfant dans la famille',
-                                    style: TextStyle(color: Colors.grey[600]),
+                                    'ui.family_management.no_child_in_family'.tr(),
+                                    style: TextStyle(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkTextSecondary
+                                          : Colors.grey[600],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -610,12 +834,9 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
                               itemCount: _children.length,
                               itemBuilder: (context, index) {
                                 final child = _children[index];
-                                return _MemberCard(
-                                  name: child.name,
-                                  email: 'Âge: ${child.age} ans',
-                                  isOwner: false,
-                                  isCurrentUser: false,
-                                  icon: Icons.child_care,
+                                return _ChildMemberCard(
+                                  child: child,
+                                  onDelete: () => _showDeleteChildDialog(child),
                                 );
                               },
                             ),
@@ -629,8 +850,8 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
                           icon: const Icon(Icons.exit_to_app),
                           label: Text(
                             family.createdBy == currentUser?.id
-                                ? 'Quitter et supprimer la famille'
-                                : 'Quitter la famille',
+                                ? 'ui.family_management.leave_and_delete'.tr()
+                                : 'ui.family_management.leave_family'.tr(),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
@@ -663,17 +884,21 @@ class _MemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(
+          color: isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
+            blurRadius: isDarkMode ? 15 : 10,
             offset: const Offset(0, 2),
           ),
         ],
@@ -683,12 +908,16 @@ class _MemberCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isOwner ? Colors.amber[100] : Colors.blue[100],
+              color: isOwner
+                  ? (isDarkMode ? Colors.amber[800] : Colors.amber[100])
+                  : (isDarkMode ? Colors.blue[800] : Colors.blue[100]),
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
-              color: isOwner ? Colors.amber[700] : Colors.blue[700],
+              color: isOwner
+                  ? (isDarkMode ? Colors.amber[200] : Colors.amber[700])
+                  : (isDarkMode ? Colors.blue[200] : Colors.blue[700]),
               size: 24,
             ),
           ),
@@ -701,10 +930,10 @@ class _MemberCard extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: isDarkMode ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
                     if (isCurrentUser) ...[
@@ -712,13 +941,13 @@ class _MemberCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.green[100],
+                          color: isDarkMode ? Colors.green[800] : Colors.green[100],
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'Vous',
+                          'ui.family_management.you'.tr(),
                           style: TextStyle(
-                            color: Colors.green[700],
+                            color: isDarkMode ? Colors.green[200] : Colors.green[700],
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -732,7 +961,7 @@ class _MemberCard extends StatelessWidget {
                   email,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: isDarkMode ? AppColors.darkTextSecondary : Colors.grey[600],
                   ),
                 ),
               ],
@@ -742,7 +971,7 @@ class _MemberCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.amber[100],
+                color: isDarkMode ? Colors.amber[800] : Colors.amber[100],
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -750,14 +979,14 @@ class _MemberCard extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.star,
-                    color: Colors.amber[700],
+                    color: isDarkMode ? Colors.amber[200] : Colors.amber[700],
                     size: 16,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Propriétaire',
+                    'ui.family_management.owner'.tr(),
                     style: TextStyle(
-                      color: Colors.amber[700],
+                      color: isDarkMode ? Colors.amber[200] : Colors.amber[700],
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -765,6 +994,88 @@ class _MemberCard extends StatelessWidget {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChildMemberCard extends StatelessWidget {
+  final Child child;
+  final VoidCallback onDelete;
+
+  const _ChildMemberCard({
+    required this.child,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkMode ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
+            blurRadius: isDarkMode ? 15 : 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDarkMode ? Colors.blue[800] : Colors.blue[100],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.child_care,
+              color: isDarkMode ? Colors.blue[200] : Colors.blue[700],
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  child.name,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'ui.family_management.age'.tr(args: [child.age.toString()]),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDarkMode ? AppColors.darkTextSecondary : Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: onDelete,
+            icon: Icon(
+              Icons.delete,
+              color: Colors.red,
+            ),
+            tooltip: 'ui.family_management.delete_child'.tr(),
+          ),
         ],
       ),
     );

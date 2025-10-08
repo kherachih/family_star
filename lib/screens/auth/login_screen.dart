@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/tutorial_provider.dart';
+import '../../utils/app_colors.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -79,6 +81,15 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('app_title'.tr()),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.darkSurface
+            : AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -86,10 +97,11 @@ class _LoginScreenState extends State<LoginScreen> {
             builder: (context, authProvider, child) {
               return Form(
                 key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                     // Logo
                     Image.asset(
                       'assets/logo.png',
@@ -101,17 +113,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email),
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: 'auth.email'.tr(),
+                        prefixIcon: const Icon(Icons.email),
+                        border: const OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Veuillez saisir votre email';
+                          return 'auth.email_required'.tr();
                         }
                         if (!value.contains('@')) {
-                          return 'Veuillez saisir un email valide';
+                          return 'auth.email_invalid'.tr();
                         }
                         return null;
                       },
@@ -123,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
-                        labelText: 'Mot de passe',
+                        labelText: 'auth.password'.tr(),
                         prefixIcon: const Icon(Icons.lock),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -141,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Veuillez saisir votre mot de passe';
+                          return 'auth.password_required'.tr();
                         }
                         return null;
                       },
@@ -159,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
                           },
                         ),
-                        const Text('Se souvenir de moi'),
+                        Text('auth.remember_me'.tr()),
                       ],
                     ),
 
@@ -169,18 +181,33 @@ class _LoginScreenState extends State<LoginScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.red[100],
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF3A2326) // Fond rouge sombre pour mode sombre
+                              : Colors.red[100],
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red[300]!),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTaskNegative // Bordure rouge foncé pour mode sombre
+                                : Colors.red[300]!,
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.error, color: Colors.red),
+                            Icon(
+                              Icons.error,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkTaskNegative // Rouge foncé pour mode sombre
+                                  : Colors.red,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 authProvider.errorMessage!,
-                                style: const TextStyle(color: Colors.red),
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkTextPrimary // Texte clair pour mode sombre
+                                      : Colors.red,
+                                ),
                               ),
                             ),
                           ],
@@ -194,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ElevatedButton(
                       onPressed: authProvider.isLoading ? null : _handleLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -210,9 +237,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Text(
-                              'Se connecter',
-                              style: TextStyle(fontSize: 16),
+                          : Text(
+                              'auth.login'.tr(),
+                              style: const TextStyle(fontSize: 16),
                             ),
                     ),
 
@@ -225,7 +252,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'OU',
+                            'auth.or'.tr(),
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontWeight: FontWeight.w500,
@@ -241,15 +268,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Bouton de connexion Google
                     OutlinedButton.icon(
                       onPressed: authProvider.isLoading ? null : _handleGoogleSignIn,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.account_circle,
-                        color: Colors.red,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTaskNegative // Rouge foncé pour mode sombre
+                            : Colors.red,
                         size: 20,
                       ),
-                      label: const Text('Continuer avec Google'),
+                      label: Text('auth.login_with_google'.tr()),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.black87,
-                        side: BorderSide(color: Colors.grey[300]!),
+                        foregroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextPrimary // Texte clair pour mode sombre
+                            : Colors.black87,
+                        side: BorderSide(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.lightGray // Gris clair pour mode sombre
+                              : Colors.grey[300]!,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -269,14 +304,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         );
                       },
                       child: RichText(
-                        text: const TextSpan(
-                          style: TextStyle(color: Colors.grey),
+                        text: TextSpan(
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTextSecondary
+                                : Colors.grey,
+                          ),
                           children: [
-                            TextSpan(text: 'Pas encore de compte ? '),
+                            TextSpan(text: 'auth.no_account'.tr()),
                             TextSpan(
-                              text: 'S\'inscrire',
+                              text: 'auth.register'.tr(),
                               style: TextStyle(
-                                color: Colors.deepPurple,
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -284,9 +323,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 20), // Espace supplémentaire en bas
                   ],
                 ),
-              );
+              ),
+            );
             },
           ),
         ),

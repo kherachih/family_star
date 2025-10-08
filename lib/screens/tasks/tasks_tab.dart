@@ -7,6 +7,7 @@ import '../../models/task.dart';
 import '../../models/reward.dart';
 import '../../models/sanction.dart';
 import '../../services/firestore_service.dart';
+import '../../services/auto_ad_service.dart';
 import 'add_task_screen.dart';
 import '../rewards/add_reward_screen.dart';
 import '../rewards/add_sanction_screen.dart';
@@ -27,8 +28,19 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    
+    // Écouter les changements d'onglets pour les publicités automatiques
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        final tabNames = ['Tâches', 'Récompenses', 'Sanctions'];
+        AutoAdService().onScreenChanged('Tâches - ${tabNames[_tabController.index]}');
+      }
+    });
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
+      // Notifier l'ouverture de l'écran des tâches
+      AutoAdService().onScreenChanged('Tâches - Tâches');
     });
   }
 
@@ -71,71 +83,80 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+    // Récupérer la taille de l'écran pour le responsive design
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.height < 700;
+    final isTablet = screenSize.width > 600;
+    
     return Scaffold(
       body: Column(
         children: [
           // Header Tâches sans AppBar
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: AppColors.gradientSecondary,
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkGradientSecondary
+                    : AppColors.gradientSecondary,
               ),
             ),
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: EdgeInsets.all(isSmallScreen ? 10.0 : 12.0),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.task_alt_rounded,
-                            size: 40,
+                            size: isSmallScreen ? 28.0 : 32.0,
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        const Expanded(
+                        SizedBox(width: isSmallScreen ? 10.0 : 12.0),
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Gestion',
                                 style: TextStyle(
-                                  fontSize: 24,
+                                  fontSize: isSmallScreen ? 18.0 : 20.0,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                   letterSpacing: 0.5,
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              SizedBox(height: 2),
                               Text(
                                 'Tâches, récompenses et sanctions',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: isSmallScreen ? 11.0 : 12.0,
                                   color: Colors.white70,
                                 ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: isSmallScreen ? 12.0 : 16.0),
                     // TabBar personnalisé amélioré
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(isSmallScreen ? 12.0 : 16.0),
                         border: Border.all(
                           color: Colors.white.withOpacity(0.2),
                           width: 1,
@@ -150,7 +171,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                               Colors.white.withOpacity(0.85),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(isSmallScreen ? 8.0 : 12.0),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.1),
@@ -159,27 +180,29 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                             ),
                           ],
                         ),
-                        labelColor: AppColors.textPrimary, // Couleur plus foncée pour meilleure lisibilité
+                        labelColor: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black // Texte noir pour mode sombre
+                            : AppColors.textPrimary, // Couleur plus foncée pour meilleure lisibilité
                         unselectedLabelColor: Colors.white, // Blanc pur pour les onglets non sélectionnés
-                        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                        labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmallScreen ? 11.0 : 13.0),
+                        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: isSmallScreen ? 11.0 : 13.0),
                         indicatorSize: TabBarIndicatorSize.tab,
                         dividerColor: Colors.transparent, // Supprime le trait sous les onglets
-                        tabs: const [
+                        tabs: [
                           Tab(
-                            icon: Icon(Icons.task_alt_rounded, size: 20),
+                            icon: Icon(Icons.task_alt_rounded, size: isSmallScreen ? 18.0 : 20.0),
                             text: 'Tâches',
-                            iconMargin: EdgeInsets.only(bottom: 4),
+                            iconMargin: EdgeInsets.only(bottom: isSmallScreen ? 2.0 : 4.0),
                           ),
                           Tab(
-                            icon: Icon(Icons.card_giftcard_rounded, size: 20),
+                            icon: Icon(Icons.card_giftcard_rounded, size: isSmallScreen ? 18.0 : 20.0),
                             text: 'Récompenses',
-                            iconMargin: EdgeInsets.only(bottom: 4),
+                            iconMargin: EdgeInsets.only(bottom: isSmallScreen ? 2.0 : 4.0),
                           ),
                           Tab(
-                            icon: Icon(Icons.block_rounded, size: 20),
+                            icon: Icon(Icons.block_rounded, size: isSmallScreen ? 18.0 : 20.0),
                             text: 'Sanctions',
-                            iconMargin: EdgeInsets.only(bottom: 4),
+                            iconMargin: EdgeInsets.only(bottom: isSmallScreen ? 2.0 : 4.0),
                           ),
                         ],
                       ),
@@ -211,7 +234,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       ),
                     );
                   },
-                  child: _buildTasksSection(),
+                  child: _buildTasksSection(isSmallScreen, isTablet),
                 ),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
@@ -230,7 +253,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       ),
                     );
                   },
-                  child: _buildRewardsSection(),
+                  child: _buildRewardsSection(isSmallScreen, isTablet),
                 ),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
@@ -249,7 +272,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       ),
                     );
                   },
-                  child: _buildSanctionsSection(),
+                  child: _buildSanctionsSection(isSmallScreen, isTablet),
                 ),
               ],
             ),
@@ -259,7 +282,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildTasksSection() {
+  Widget _buildTasksSection(bool isSmallScreen, bool isTablet) {
     return RefreshIndicator(
       onRefresh: _loadTasks,
       child: _isLoadingTasks
@@ -271,30 +294,38 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                   subtitle: 'Créez des tâches pour vos enfants',
                   buttonText: 'Créer une tâche',
                   onPressed: () => _navigateToAddTask(),
-                  color: AppColors.taskPositive,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkTaskPositive
+                      : AppColors.taskPositive,
+                  isSmallScreen: isSmallScreen,
+                  isTablet: isTablet,
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
                   itemCount: _tasks.length + 1,
                   itemBuilder: (context, index) {
                     if (index == _tasks.length) {
                       return Padding(
-                        padding: const EdgeInsets.only(top: 16),
+                        padding: EdgeInsets.only(top: isSmallScreen ? 12.0 : 16.0),
                         child: _buildAddButton(
                           label: 'Créer une tâche',
                           icon: Icons.add,
-                          gradient: AppColors.gradientTertiary,
+                          gradient: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkGradientTertiary
+                              : AppColors.gradientTertiary,
                           onTap: () => _navigateToAddTask(),
+                          isSmallScreen: isSmallScreen,
+                          isTablet: isTablet,
                         ),
                       );
                     }
-                    return _buildTaskCard(_tasks[index]);
+                    return _buildTaskCard(_tasks[index], isSmallScreen, isTablet);
                   },
                 ),
     );
   }
 
-  Widget _buildRewardsSection() {
+  Widget _buildRewardsSection(bool isSmallScreen, bool isTablet) {
     return Consumer<RewardsProvider>(
       builder: (context, rewardsProvider, child) {
         if (rewardsProvider.isLoading) {
@@ -310,33 +341,41 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
             subtitle: 'Créez des récompenses pour motiver vos enfants',
             buttonText: 'Créer une récompense',
             onPressed: () => _navigateToAddRewardScreen(),
-            color: Colors.amber,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkSecondary
+                : Colors.amber,
+            isSmallScreen: isSmallScreen,
+            isTablet: isTablet,
           );
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
           itemCount: rewards.length + 1,
           itemBuilder: (context, index) {
             if (index == rewards.length) {
               return Padding(
-                padding: const EdgeInsets.only(top: 16),
+                padding: EdgeInsets.only(top: isSmallScreen ? 12.0 : 16.0),
                 child: _buildAddButton(
                   label: 'Créer une récompense',
                   icon: Icons.add,
-                  gradient: [Colors.amber[600]!, Colors.amber[400]!],
+                  gradient: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkGradientSecondary
+                      : [Colors.amber[600]!, Colors.amber[400]!],
                   onTap: () => _navigateToAddRewardScreen(),
+                  isSmallScreen: isSmallScreen,
+                  isTablet: isTablet,
                 ),
               );
             }
-            return _buildRewardCard(rewards[index]);
+            return _buildRewardCard(rewards[index], isSmallScreen, isTablet);
           },
         );
       },
     );
   }
 
-  Widget _buildSanctionsSection() {
+  Widget _buildSanctionsSection(bool isSmallScreen, bool isTablet) {
     return Consumer<RewardsProvider>(
       builder: (context, rewardsProvider, child) {
         if (rewardsProvider.isLoading) {
@@ -352,26 +391,34 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
             subtitle: 'Créez des sanctions pour les étoiles négatives',
             buttonText: 'Créer une sanction',
             onPressed: () => _navigateToAddSanctionScreen(),
-            color: Colors.red,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkTaskNegative
+                : Colors.red,
+            isSmallScreen: isSmallScreen,
+            isTablet: isTablet,
           );
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
           itemCount: sanctions.length + 1,
           itemBuilder: (context, index) {
             if (index == sanctions.length) {
               return Padding(
-                padding: const EdgeInsets.only(top: 16),
+                padding: EdgeInsets.only(top: isSmallScreen ? 12.0 : 16.0),
                 child: _buildAddButton(
                   label: 'Créer une sanction',
                   icon: Icons.add,
-                  gradient: AppColors.gradientPrimary,
+                  gradient: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkGradientPrimary
+                      : AppColors.gradientPrimary,
                   onTap: () => _navigateToAddSanctionScreen(),
+                  isSmallScreen: isSmallScreen,
+                  isTablet: isTablet,
                 ),
               );
             }
-            return _buildSanctionCard(sanctions[index]);
+            return _buildSanctionCard(sanctions[index], isSmallScreen, isTablet);
           },
         );
       },
@@ -385,149 +432,160 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     required String buttonText,
     required VoidCallback onPressed,
     required Color color,
+    required bool isSmallScreen,
+    required bool isTablet,
   }) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Animation de l'icône
-            TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 800),
-              tween: Tween(begin: 0.0, end: 1.0),
-              builder: (context, value, child) {
-                return Transform.scale(
-                  scale: value,
-                  child: Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          color.withOpacity(0.15),
-                          color.withOpacity(0.05),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: color.withOpacity(0.2),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(isSmallScreen ? 24.0 : 32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Animation de l'icône
+              TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 800),
+                tween: Tween(begin: 0.0, end: 1.0),
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: value,
+                    child: Container(
+                      padding: EdgeInsets.all(isSmallScreen ? 24.0 : 32.0),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            color.withOpacity(0.15),
+                            color.withOpacity(0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                      ],
-                    ),
-                    child: Icon(icon, size: 64, color: color),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 32),
-            // Titre avec animation
-            TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 600),
-              tween: Tween(begin: 0.0, end: 1.0),
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, 20 * (1 - value)),
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            // Sous-titre avec animation
-            TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 800),
-              tween: Tween(begin: 0.0, end: 1.0),
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, 20 * (1 - value)),
-                    child: Text(
-                      subtitle,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: AppColors.textSecondary,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 32),
-            // Bouton avec animation et dégradé
-            TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 1000),
-              tween: Tween(begin: 0.0, end: 1.0),
-              builder: (context, value, child) {
-                return Transform.scale(
-                  scale: 0.9 + (0.1 * value),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          color,
-                          color.withOpacity(0.8),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withOpacity(0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
                         ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: color.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      child: Icon(icon, size: isSmallScreen ? 48.0 : 64.0, color: color),
                     ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: onPressed,
-                        borderRadius: BorderRadius.circular(16),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                buttonText,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  letterSpacing: 0.5,
+                  );
+                },
+              ),
+              SizedBox(height: isSmallScreen ? 24.0 : 32.0),
+              // Titre avec animation
+              TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 600),
+                tween: Tween(begin: 0.0, end: 1.0),
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(0, 20 * (1 - value)),
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 22.0 : 26.0,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextPrimary // Texte principal pour mode sombre
+                              : AppColors.textPrimary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              SizedBox(height: isSmallScreen ? 8.0 : 12.0),
+              // Sous-titre avec animation
+              TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 800),
+                tween: Tween(begin: 0.0, end: 1.0),
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(0, 20 * (1 - value)),
+                      child: Text(
+                        subtitle,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 14.0 : 16.0,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextSecondary // Texte secondaire pour mode sombre
+                              : AppColors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              SizedBox(height: isSmallScreen ? 24.0 : 32.0),
+              // Bouton avec animation et dégradé
+              TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 1000),
+                tween: Tween(begin: 0.0, end: 1.0),
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: 0.9 + (0.1 * value),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            color,
+                            color.withOpacity(0.8),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(isSmallScreen ? 12.0 : 16.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: onPressed,
+                          borderRadius: BorderRadius.circular(isSmallScreen ? 12.0 : 16.0),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isSmallScreen ? 24.0 : 32.0,
+                              vertical: isSmallScreen ? 12.0 : 16.0
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add_rounded, color: Colors.white, size: isSmallScreen ? 18.0 : 20.0),
+                                SizedBox(width: isSmallScreen ? 6.0 : 8.0),
+                                Text(
+                                  buttonText,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isSmallScreen ? 14.0 : 16.0,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -538,6 +596,8 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     required IconData icon,
     required List<Color> gradient,
     required VoidCallback onTap,
+    required bool isSmallScreen,
+    required bool isTablet,
   }) {
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 300),
@@ -552,7 +612,7 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                 end: Alignment.bottomRight,
                 colors: gradient,
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(isSmallScreen ? 12.0 : 16.0),
               boxShadow: [
                 BoxShadow(
                   color: gradient.first.withOpacity(0.3),
@@ -570,21 +630,28 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
               color: Colors.transparent,
               child: InkWell(
                 onTap: onTap,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(isSmallScreen ? 12.0 : 16.0),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  padding: EdgeInsets.symmetric(
+                    vertical: isSmallScreen ? 14.0 : 18.0,
+                    horizontal: isTablet ? 24.0 : 16.0,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(icon, color: Colors.white, size: 22),
-                      const SizedBox(width: 12),
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          letterSpacing: 0.5,
+                      Icon(icon, color: Colors.white, size: isSmallScreen ? 20.0 : 22.0),
+                      SizedBox(width: isSmallScreen ? 10.0 : 12.0),
+                      Flexible(
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 14.0 : 16.0,
+                            letterSpacing: 0.5,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
                     ],
@@ -598,24 +665,28 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildTaskCard(Task task) {
+  Widget _buildTaskCard(Task task, bool isSmallScreen, bool isTablet) {
     // Vérifier si la tâche quotidienne a été complétée par tous les enfants aujourd'hui
     bool isCompletedToday = task.isDaily ? task.isCompletedTodayByAllChildren() : false;
     
     // Animation pour l'effet de survol
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: isSmallScreen ? 12.0 : 16.0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(isSmallScreen ? 12.0 : 16.0),
         gradient: isCompletedToday
             ? LinearGradient(
-                colors: [Colors.grey[100]!, Colors.grey[50]!],
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [AppColors.darkCard, AppColors.darkSurface]
+                    : [Colors.grey[100]!, Colors.grey[50]!],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
             : LinearGradient(
-                colors: [Colors.white, Colors.white],
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [AppColors.darkCard, AppColors.darkCard]
+                    : [Colors.white, Colors.white],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -624,8 +695,12 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
             color: isCompletedToday
                 ? Colors.grey.withOpacity(0.2)
                 : (task.type == TaskType.positive
-                    ? AppColors.taskPositive.withOpacity(0.15)
-                    : AppColors.taskNegative.withOpacity(0.15)),
+                    ? (Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTaskPositive.withOpacity(0.15)
+                        : AppColors.taskPositive.withOpacity(0.15))
+                    : (Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTaskNegative.withOpacity(0.15)
+                        : AppColors.taskNegative.withOpacity(0.15))),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -639,42 +714,54 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
           color: isCompletedToday
               ? Colors.grey[300]!
               : (task.type == TaskType.positive
-                  ? AppColors.taskPositive.withOpacity(0.3)
-                  : AppColors.taskNegative.withOpacity(0.3)),
+                  ? (Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkTaskPositive.withOpacity(0.3)
+                      : AppColors.taskPositive.withOpacity(0.3))
+                  : (Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkTaskNegative.withOpacity(0.3)
+                      : AppColors.taskNegative.withOpacity(0.3))),
           width: 1,
         ),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(isSmallScreen ? 12.0 : 16.0),
           onTap: isCompletedToday ? null : () => _showTaskDetails(task),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
             child: Row(
               children: [
                 // Icône améliorée avec animation
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(isSmallScreen ? 10.0 : 12.0),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: isCompletedToday
                           ? [Colors.grey[300]!, Colors.grey[400]!]
                           : (task.type == TaskType.positive
-                              ? [AppColors.taskPositive.withOpacity(0.8), AppColors.taskPositive]
-                              : [AppColors.taskNegative.withOpacity(0.8), AppColors.taskNegative]),
+                              ? (Theme.of(context).brightness == Brightness.dark
+                                  ? [AppColors.darkTaskPositive.withOpacity(0.8), AppColors.darkTaskPositive]
+                                  : [AppColors.taskPositive.withOpacity(0.8), AppColors.taskPositive])
+                              : (Theme.of(context).brightness == Brightness.dark
+                                  ? [AppColors.darkTaskNegative.withOpacity(0.8), AppColors.darkTaskNegative]
+                                  : [AppColors.taskNegative.withOpacity(0.8), AppColors.taskNegative])),
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(isSmallScreen ? 8.0 : 12.0),
                     boxShadow: [
                       BoxShadow(
                         color: isCompletedToday
                             ? Colors.grey.withOpacity(0.3)
                             : (task.type == TaskType.positive
-                                ? AppColors.taskPositive.withOpacity(0.3)
-                                : AppColors.taskNegative.withOpacity(0.3)),
+                                ? (Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTaskPositive.withOpacity(0.3)
+                                    : AppColors.taskPositive.withOpacity(0.3))
+                                : (Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTaskNegative.withOpacity(0.3)
+                                    : AppColors.taskNegative.withOpacity(0.3))),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -683,10 +770,10 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                   child: Icon(
                     task.type == TaskType.positive ? Icons.add_circle_rounded : Icons.remove_circle_rounded,
                     color: Colors.white,
-                    size: 24,
+                    size: isSmallScreen ? 20.0 : 24.0,
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: isSmallScreen ? 12.0 : 16.0),
                 // Contenu principal
                 Expanded(
                   child: Column(
@@ -698,15 +785,26 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                             child: Text(
                               task.title,
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: isSmallScreen ? 14.0 : 16.0,
                                 fontWeight: FontWeight.bold,
-                                color: isCompletedToday ? Colors.grey[600] : AppColors.textPrimary,
+                                color: isCompletedToday
+                                    ? (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkTextLight
+                                        : Colors.grey[600])
+                                    : (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.textPrimary),
                               ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: isSmallScreen ? 1 : 2,
                             ),
                           ),
                           // Badge d'étoiles
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isSmallScreen ? 6.0 : 8.0,
+                              vertical: isSmallScreen ? 2.0 : 4.0
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: task.type == TaskType.positive
@@ -717,63 +815,97 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                             ),
                             child: Text(
                               '${task.type == TaskType.positive ? "+" : "-"}${task.stars}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                                fontSize: isSmallScreen ? 10.0 : 12.0,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: isSmallScreen ? 6.0 : 8.0),
                       if (task.description != null)
                         Text(
                           task.description!,
                           style: TextStyle(
-                            fontSize: 14,
-                            color: isCompletedToday ? Colors.grey[500] : AppColors.textSecondary,
+                            fontSize: isSmallScreen ? 12.0 : 14.0,
+                            color: isCompletedToday
+                                ? (Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTextLight
+                                    : Colors.grey[500])
+                                : (Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textSecondary),
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: isSmallScreen ? 2 : 3,
                         ),
                       if (task.isDaily) ...[
-                        const SizedBox(height: 8),
+                        SizedBox(height: isSmallScreen ? 6.0 : 8.0),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isSmallScreen ? 6.0 : 8.0,
+                            vertical: isSmallScreen ? 2.0 : 4.0
+                          ),
                           decoration: BoxDecoration(
-                            color: isCompletedToday ? Colors.grey[200] : Colors.blue.withOpacity(0.1),
+                            color: isCompletedToday
+                                ? (Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTextLight.withOpacity(0.2)
+                                    : Colors.grey[200])
+                                : Colors.blue.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             'Tâche quotidienne',
                             style: TextStyle(
-                              fontSize: 11,
-                              color: isCompletedToday ? Colors.grey[600] : Colors.blue[700],
+                              fontSize: isSmallScreen ? 9.0 : 11.0,
+                              color: isCompletedToday
+                                  ? (Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkTextLight
+                                      : Colors.grey[600])
+                                  : Colors.blue[700],
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                         if (task.childIds.length > 1) ...[
-                          const SizedBox(height: 4),
+                          SizedBox(height: isSmallScreen ? 2.0 : 4.0),
                           // Afficher l'état de complétion pour les tâches multi-enfants
                           Builder(
                             builder: (context) {
                               final completedCount = task.getChildrenCompletedToday().length;
                               final totalCount = task.childIds.length;
                               return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isSmallScreen ? 6.0 : 8.0,
+                                  vertical: isSmallScreen ? 2.0 : 4.0
+                                ),
                                 decoration: BoxDecoration(
                                   color: completedCount == totalCount
-                                      ? Colors.green.withOpacity(0.1)
-                                      : (completedCount > 0 ? Colors.orange.withOpacity(0.1) : Colors.grey.withOpacity(0.1)),
+                                      ? (Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkTaskBackgroundPositive
+                                          : Colors.green.withOpacity(0.1))
+                                      : (completedCount > 0
+                                          ? Colors.orange.withOpacity(0.1)
+                                          : (Theme.of(context).brightness == Brightness.dark
+                                              ? AppColors.darkCard
+                                              : Colors.grey.withOpacity(0.1))),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   'Progression: $completedCount/$totalCount',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: isSmallScreen ? 9.0 : 11.0,
                                     color: completedCount == totalCount
-                                        ? Colors.green[700]
-                                        : (completedCount > 0 ? Colors.orange[700] : Colors.grey[600]),
+                                        ? (Theme.of(context).brightness == Brightness.dark
+                                            ? AppColors.darkTaskPositive
+                                            : Colors.green[700])
+                                        : (completedCount > 0
+                                            ? Colors.orange[700]
+                                            : (Theme.of(context).brightness == Brightness.dark
+                                                ? AppColors.darkTextLight
+                                                : Colors.grey[600])),
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -782,16 +914,23 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                           ),
                         ] else if (task.childIds.isNotEmpty && task.isCompletedTodayByChild(task.childIds.first))
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isSmallScreen ? 6.0 : 8.0,
+                              vertical: isSmallScreen ? 2.0 : 4.0
+                            ),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkTaskBackgroundPositive
+                                  : Colors.green.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               'Complétée aujourd\'hui',
                               style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.green[700],
+                                fontSize: isSmallScreen ? 9.0 : 11.0,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTaskPositive
+                                    : Colors.green[700],
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -802,7 +941,17 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                 ),
                 // Menu d'options
                 PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert, color: isCompletedToday ? Colors.grey[400] : AppColors.textSecondary),
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: isCompletedToday
+                        ? (Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextLight
+                            : Colors.grey[400])
+                        : (Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary),
+                    size: isSmallScreen ? 20.0 : 24.0,
+                  ),
                   onSelected: (value) async {
                     if (value == 'edit') {
                       await _navigateToEditTask(task);
@@ -815,8 +964,14 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit_outlined, size: 20, color: AppColors.textSecondary),
-                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.edit_outlined,
+                            size: isSmallScreen ? 18.0 : 20.0,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
+                          SizedBox(width: isSmallScreen ? 8.0 : 12.0),
                           const Text('Modifier'),
                         ],
                       ),
@@ -825,9 +980,22 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline, size: 20, color: AppColors.taskNegative),
-                          const SizedBox(width: 12),
-                          Text('Supprimer', style: TextStyle(color: AppColors.taskNegative)),
+                          Icon(
+                            Icons.delete_outline,
+                            size: isSmallScreen ? 18.0 : 20.0,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTaskNegative
+                                : AppColors.taskNegative,
+                          ),
+                          SizedBox(width: isSmallScreen ? 8.0 : 12.0),
+                          Text(
+                            'Supprimer',
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkTaskNegative
+                                  : AppColors.taskNegative,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -936,14 +1104,16 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     }
   }
 
-  Widget _buildRewardCard(Reward reward) {
+  Widget _buildRewardCard(Reward reward, bool isSmallScreen, bool isTablet) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: isSmallScreen ? 12.0 : 16.0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(isSmallScreen ? 12.0 : 16.0),
         gradient: LinearGradient(
-          colors: [Colors.white, Colors.white],
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? [AppColors.darkCard, AppColors.darkCard]
+              : [Colors.white, Colors.white],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -967,23 +1137,23 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(isSmallScreen ? 12.0 : 16.0),
           onTap: () => _navigateToAddRewardScreen(reward: reward),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
             child: Row(
               children: [
                 // Icône améliorée avec animation
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(isSmallScreen ? 10.0 : 12.0),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [AppColors.starPositive.withOpacity(0.8), AppColors.starPositive],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(isSmallScreen ? 8.0 : 12.0),
                     boxShadow: [
                       BoxShadow(
                         color: AppColors.starPositive.withOpacity(0.3),
@@ -992,13 +1162,13 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.card_giftcard_rounded,
                     color: Colors.white,
-                    size: 24,
+                    size: isSmallScreen ? 20.0 : 24.0,
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: isSmallScreen ? 12.0 : 16.0),
                 // Contenu principal
                 Expanded(
                   child: Column(
@@ -1009,47 +1179,66 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                           Expanded(
                             child: Text(
                               reward.name,
-                              style: const TextStyle(
-                                fontSize: 16,
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 14.0 : 16.0,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.textPrimary,
                               ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: isSmallScreen ? 1 : 2,
                             ),
                           ),
                           // Badge d'étoiles
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isSmallScreen ? 6.0 : 8.0,
+                              vertical: isSmallScreen ? 2.0 : 4.0
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [AppColors.starPositive, AppColors.starPositive.withOpacity(0.8)],
+                                colors: Theme.of(context).brightness == Brightness.dark
+                                    ? [AppColors.starPositive, AppColors.starPositive.withOpacity(0.8)]
+                                    : [AppColors.starPositive, AppColors.starPositive.withOpacity(0.8)],
                               ),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               '${reward.starsCost} ⭐',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                                fontSize: isSmallScreen ? 10.0 : 12.0,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: isSmallScreen ? 6.0 : 8.0),
                       Text(
                         reward.description,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 12.0 : 14.0,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textSecondary,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: isSmallScreen ? 2 : 3,
                       ),
                     ],
                   ),
                 ),
                 // Menu d'options
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                    size: isSmallScreen ? 20.0 : 24.0,
+                  ),
                   onSelected: (value) async {
                     if (value == 'edit') {
                       await _navigateToAddRewardScreen(reward: reward);
@@ -1062,8 +1251,14 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit_outlined, size: 20, color: AppColors.textSecondary),
-                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.edit_outlined,
+                            size: isSmallScreen ? 18.0 : 20.0,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
+                          SizedBox(width: isSmallScreen ? 8.0 : 12.0),
                           const Text('Modifier'),
                         ],
                       ),
@@ -1078,14 +1273,16 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildSanctionCard(Sanction sanction) {
+  Widget _buildSanctionCard(Sanction sanction, bool isSmallScreen, bool isTablet) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: isSmallScreen ? 12.0 : 16.0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(isSmallScreen ? 12.0 : 16.0),
         gradient: LinearGradient(
-          colors: [Colors.white, Colors.white],
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? [AppColors.darkCard, AppColors.darkCard]
+              : [Colors.white, Colors.white],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1109,23 +1306,23 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(isSmallScreen ? 12.0 : 16.0),
           onTap: () => _navigateToAddSanctionScreen(sanction: sanction),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
             child: Row(
               children: [
                 // Icône améliorée avec animation
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(isSmallScreen ? 10.0 : 12.0),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [AppColors.taskNegative.withOpacity(0.8), AppColors.taskNegative],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(isSmallScreen ? 8.0 : 12.0),
                     boxShadow: [
                       BoxShadow(
                         color: AppColors.taskNegative.withOpacity(0.3),
@@ -1134,13 +1331,13 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.block_rounded,
                     color: Colors.white,
-                    size: 24,
+                    size: isSmallScreen ? 20.0 : 24.0,
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: isSmallScreen ? 12.0 : 16.0),
                 // Contenu principal
                 Expanded(
                   child: Column(
@@ -1151,54 +1348,74 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                           Expanded(
                             child: Text(
                               sanction.name,
-                              style: const TextStyle(
-                                fontSize: 16,
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 14.0 : 16.0,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.textPrimary,
                               ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: isSmallScreen ? 1 : 2,
                             ),
                           ),
                           // Badge d'étoiles
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isSmallScreen ? 6.0 : 8.0,
+                              vertical: isSmallScreen ? 2.0 : 4.0
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [AppColors.taskNegative, AppColors.taskNegative.withOpacity(0.8)],
+                                colors: Theme.of(context).brightness == Brightness.dark
+                                    ? [AppColors.darkTaskNegative, AppColors.darkTaskNegative.withOpacity(0.8)]
+                                    : [AppColors.taskNegative, AppColors.taskNegative.withOpacity(0.8)],
                               ),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               '-${sanction.starsCost} ⭐',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                                fontSize: isSmallScreen ? 10.0 : 12.0,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: isSmallScreen ? 6.0 : 8.0),
                       Text(
                         sanction.description,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 12.0 : 14.0,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textSecondary,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: isSmallScreen ? 2 : 3,
                       ),
                       if (sanction.durationText != null) ...[
-                        const SizedBox(height: 8),
+                        SizedBox(height: isSmallScreen ? 6.0 : 8.0),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isSmallScreen ? 6.0 : 8.0,
+                            vertical: isSmallScreen ? 2.0 : 4.0
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.taskNegative.withOpacity(0.1),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTaskBackgroundNegative
+                                : AppColors.taskNegative.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             'Durée: ${sanction.durationText}',
                             style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.taskNegative,
+                              fontSize: isSmallScreen ? 9.0 : 11.0,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkTaskNegative
+                                  : AppColors.taskNegative,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -1209,7 +1426,13 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                 ),
                 // Menu d'options
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                    size: isSmallScreen ? 20.0 : 24.0,
+                  ),
                   onSelected: (value) async {
                     if (value == 'edit') {
                       await _navigateToAddSanctionScreen(sanction: sanction);
@@ -1222,8 +1445,14 @@ class _TasksTabState extends State<TasksTab> with SingleTickerProviderStateMixin
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit_outlined, size: 20, color: AppColors.textSecondary),
-                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.edit_outlined,
+                            size: isSmallScreen ? 18.0 : 20.0,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
+                          SizedBox(width: isSmallScreen ? 8.0 : 12.0),
                           const Text('Modifier'),
                         ],
                       ),

@@ -8,6 +8,7 @@ import '../tasks/tasks_tab.dart';
 import '../children/children_tab.dart';
 import '../profile/profile_tab.dart';
 import '../notifications/notifications_screen.dart';
+import '../../services/auto_ad_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -18,6 +19,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  int _previousIndex = 0;
 
   final List<Widget> _tabs = [
     const HomeTab(),
@@ -25,6 +27,22 @@ class _MainScreenState extends State<MainScreen> {
     const ChildrenTab(),
     const ProfileTab(),
   ];
+
+  final List<String> _tabNames = [
+    'Accueil',
+    'Tâches',
+    'Enfants',
+    'Profil',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Notifier la première navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AutoAdService().onScreenChanged(_tabNames[_currentIndex]);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +151,9 @@ class _MainScreenState extends State<MainScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.darkSurface
+              : Colors.white,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -192,8 +212,14 @@ class _MainScreenState extends State<MainScreen> {
       child: GestureDetector(
         onTap: () {
           setState(() {
+            _previousIndex = _currentIndex;
             _currentIndex = index;
           });
+          
+          // Notifier le changement d'écran pour les publicités automatiques
+          if (_previousIndex != _currentIndex) {
+            AutoAdService().onScreenChanged(_tabNames[_currentIndex]);
+          }
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -222,7 +248,9 @@ class _MainScreenState extends State<MainScreen> {
             children: [
               Icon(
                 icon,
-                color: isSelected ? Colors.white : AppColors.textSecondary,
+                color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary),
                 size: 26,
               ),
               const SizedBox(height: 4),
@@ -231,7 +259,9 @@ class _MainScreenState extends State<MainScreen> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                  color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary),
                   letterSpacing: 0.3,
                 ),
               ),

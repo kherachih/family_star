@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/rewards_provider.dart';
 import '../../providers/children_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/child.dart';
 import '../../models/reward.dart';
+import '../../utils/ad_helper.dart';
 
 class RewardsCatalogScreen extends StatefulWidget {
   final Child child;
@@ -290,6 +292,17 @@ class _RewardsCatalogScreenState extends State<RewardsCatalogScreen> {
                   ),
                 );
                 _loadData();
+                
+                // Afficher une publicité après un échange de récompense réussi
+                final authProvider = context.read<AuthProvider>();
+                if (authProvider.currentUser != null) {
+                  // Attendre un peu pour que le SnackBar soit visible
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    if (mounted) {
+                      AdHelper.showAdIfAvailable(context, authProvider.currentUser!.id);
+                    }
+                  });
+                }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

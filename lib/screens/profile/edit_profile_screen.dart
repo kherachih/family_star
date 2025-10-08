@@ -194,7 +194,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           'Photo de profil',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTextSecondary
+                                : Colors.grey[600],
                           ),
                         ),
                       ],
@@ -204,12 +206,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const SizedBox(height: 40),
                   
                   // Nom
-                  const Text(
+                  Text(
                     'Nom',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -237,12 +241,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const SizedBox(height: 24),
                   
                   // Email (non modifiable)
-                  const Text(
+                  Text(
                     'Email',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -269,9 +275,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCard
+                          : Colors.grey[50],
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!),
+                      border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[600]!
+                            : Colors.grey[200]!,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,12 +291,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Mot de passe',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.textPrimary,
                               ),
                             ),
                             TextButton(
@@ -386,7 +400,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             'Pour des raisons de sécurité, vous ne pouvez modifier votre mot de passe qu\'après avoir confirmé votre mot de passe actuel.',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkTextSecondary
+                                  : Colors.grey[600],
                             ),
                           ),
                         ],

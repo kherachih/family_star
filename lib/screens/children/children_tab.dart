@@ -5,6 +5,7 @@ import '../../providers/children_provider.dart';
 import '../../providers/family_provider.dart';
 import '../../models/child.dart';
 import '../../utils/app_colors.dart';
+import '../../services/auto_ad_service.dart';
 import 'add_child_screen.dart';
 import 'child_profile_screen.dart';
 
@@ -21,6 +22,8 @@ class _ChildrenTabState extends State<ChildrenTab> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
+      // Notifier l'ouverture de l'écran des enfants
+      AutoAdService().onScreenChanged('Enfants');
     });
   }
 
@@ -58,15 +61,19 @@ class _ChildrenTabState extends State<ChildrenTab> {
                   // Header Enfants sans AppBar
                   Container(
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: AppColors.gradientTertiary,
+                        colors: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkGradientTertiary
+                            : AppColors.gradientTertiary,
                       ),
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.tertiary.withOpacity(0.3),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTertiary.withOpacity(0.3)
+                              : AppColors.tertiary.withOpacity(0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -145,20 +152,24 @@ class _ChildrenTabState extends State<ChildrenTab> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          const Text(
+                          Text(
                             'Aucun enfant',
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                             'Commencez par ajouter votre premier enfant',
                             style: TextStyle(
                               fontSize: 14,
-                              color: AppColors.textSecondary,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 24),
@@ -198,15 +209,19 @@ class _ChildrenTabState extends State<ChildrenTab> {
 
           return Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: AppColors.gradientPrimary,
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkGradientPrimary
+                    : AppColors.gradientPrimary,
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.4),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkPrimary.withOpacity(0.4)
+                      : AppColors.primary.withOpacity(0.4),
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                 ),
@@ -260,18 +275,28 @@ class _ChildrenTabState extends State<ChildrenTab> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            AppColors.primary.withOpacity(0.05),
-          ],
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? [
+                  AppColors.darkCard,
+                  AppColors.darkSurface,
+                ]
+              : [
+                  Colors.white,
+                  AppColors.primary.withOpacity(0.05),
+                ],
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [AppColors.cardShadow],
+        boxShadow: Theme.of(context).brightness == Brightness.dark
+            ? [AppColors.darkCardShadow]
+            : [AppColors.cardShadow],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
+            // Notifier la navigation vers le profil d'un enfant
+            AutoAdService().onScreenChanged('Profil enfant - ${child.name}');
+            
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => ChildProfileScreen(child: child),
@@ -288,15 +313,19 @@ class _ChildrenTabState extends State<ChildrenTab> {
                   width: 70,
                   height: 70,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: AppColors.gradientHero,
+                      colors: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkGradientHero
+                          : AppColors.gradientHero,
                     ),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkPrimary.withOpacity(0.3)
+                            : AppColors.primary.withOpacity(0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -318,18 +347,22 @@ class _ChildrenTabState extends State<ChildrenTab> {
                     children: [
                       Text(
                         child.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${child.age} ans',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textSecondary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -386,13 +419,17 @@ class _ChildrenTabState extends State<ChildrenTab> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkPrimary.withOpacity(0.1)
+                        : AppColors.primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 16,
-                    color: AppColors.primary,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkPrimary
+                        : AppColors.primary,
                   ),
                 ),
               ],

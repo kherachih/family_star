@@ -5,6 +5,7 @@ import '../../providers/children_provider.dart';
 import '../../models/task.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/ad_helper.dart';
 
 class AddTaskScreen extends StatefulWidget {
   final Task? task; // Tâche à modifier (optionnel)
@@ -140,6 +141,16 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
             backgroundColor: Colors.green,
           ),
         );
+        
+        // Afficher une publicité après avoir ajouté une tâche (uniquement en mode création)
+        if (!_isEditMode) {
+          // Attendre un peu pour que le SnackBar soit visible
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted && authProvider.currentUser != null) {
+              AdHelper.showAdIfAvailable(context, authProvider.currentUser!.id);
+            }
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -191,7 +202,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
         ],
       ),
       body: Container(
-        color: AppColors.background,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.darkBackground
+            : AppColors.background,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -206,7 +219,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                     // Type de tâche (Positive/Négative)
                     Card(
                       elevation: 4,
-                      shadowColor: AppColors.cardShadow.color,
+                      shadowColor: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCardShadow.color
+                          : AppColors.cardShadow.color,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCard
+                          : Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -230,11 +248,14 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                const Text(
+                                Text(
                                   'Type de tâche',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkTextPrimary
+                                        : Colors.black,
                                   ),
                                 ),
                               ],
@@ -256,7 +277,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                         side: BorderSide(
                                           color: _selectedType == TaskType.positive
                                               ? AppColors.taskPositive
-                                              : Colors.grey.shade300,
+                                              : (Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.grey[600]!
+                                                  : Colors.grey.shade300),
                                           width: 2.5,
                                         ),
                                         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
@@ -272,7 +295,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                         Icons.add_circle,
                                         color: _selectedType == TaskType.positive
                                             ? AppColors.taskPositive
-                                            : Colors.grey.shade500,
+                                            : (Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.grey[500]!
+                                                : Colors.grey.shade500),
                                         size: 28,
                                       ),
                                       label: Row(
@@ -285,7 +310,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                               fontSize: 14,
                                               color: _selectedType == TaskType.positive
                                                   ? AppColors.taskPositive
-                                                  : Colors.grey.shade700,
+                                                  : (Theme.of(context).brightness == Brightness.dark
+                                                      ? Colors.grey[400]!
+                                                      : Colors.grey.shade700),
                                               fontWeight: _selectedType == TaskType.positive
                                                   ? FontWeight.bold
                                                   : FontWeight.normal,
@@ -296,7 +323,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                             Icons.star,
                                             color: _selectedType == TaskType.positive
                                                 ? AppColors.taskPositive
-                                                : Colors.grey.shade500,
+                                                : (Theme.of(context).brightness == Brightness.dark
+                                                    ? Colors.grey[500]!
+                                                    : Colors.grey.shade500),
                                             size: 16,
                                           ),
                                         ],
@@ -319,7 +348,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                         side: BorderSide(
                                           color: _selectedType == TaskType.negative
                                               ? AppColors.taskNegative
-                                              : Colors.grey.shade300,
+                                              : (Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.grey[600]!
+                                                  : Colors.grey.shade300),
                                           width: 2.5,
                                         ),
                                         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
@@ -335,7 +366,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                         Icons.remove_circle,
                                         color: _selectedType == TaskType.negative
                                             ? AppColors.taskNegative
-                                            : Colors.grey.shade500,
+                                            : (Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.grey[500]!
+                                                : Colors.grey.shade500),
                                         size: 28,
                                       ),
                                       label: Row(
@@ -348,7 +381,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                               fontSize: 14,
                                               color: _selectedType == TaskType.negative
                                                   ? AppColors.taskNegative
-                                                  : Colors.grey.shade700,
+                                                  : (Theme.of(context).brightness == Brightness.dark
+                                                      ? Colors.grey[400]!
+                                                      : Colors.grey.shade700),
                                               fontWeight: _selectedType == TaskType.negative
                                                   ? FontWeight.bold
                                                   : FontWeight.normal,
@@ -359,7 +394,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                             Icons.star_border,
                                             color: _selectedType == TaskType.negative
                                                 ? AppColors.taskNegative
-                                                : Colors.grey.shade500,
+                                                : (Theme.of(context).brightness == Brightness.dark
+                                                    ? Colors.grey[500]!
+                                                    : Colors.grey.shade500),
                                             size: 16,
                                           ),
                                         ],
@@ -424,7 +461,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                     // Sélection de l'enfant
                     Card(
                       elevation: 4,
-                      shadowColor: AppColors.cardShadow.color,
+                      shadowColor: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCardShadow.color
+                          : AppColors.cardShadow.color,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCard
+                          : Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -448,11 +490,14 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                const Text(
+                                Text(
                                   'Assigner à',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkTextPrimary
+                                        : Colors.black,
                                   ),
                                 ),
                               ],
@@ -494,10 +539,14 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkCard
+                                      : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: Colors.grey.shade300,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[600]!
+                                        : Colors.grey.shade300,
                                     width: 1,
                                   ),
                                 ),
@@ -506,17 +555,26 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                     Container(
                                       padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.grey[700]
+                                            : Colors.grey.shade200,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(Icons.info_outline, color: Colors.grey),
+                                      child: Icon(
+                                        Icons.info_outline,
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.grey[400]
+                                            : Colors.grey,
+                                      ),
                                     ),
                                     const SizedBox(width: 12),
-                                    const Expanded(
+                                    Expanded(
                                       child: Text(
                                         'Aucun enfant disponible. Ajoutez d\'abord un enfant.',
                                         style: TextStyle(
-                                          color: Colors.grey,
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? AppColors.darkTextSecondary
+                                              : Colors.grey,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -525,18 +583,24 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                 ),
                               )
                             else
-                              ...children.map((child) => AnimatedContainer(
+                              ...children.map((child) {
+                                final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                                return AnimatedContainer(
                                     duration: const Duration(milliseconds: 300),
                                     margin: const EdgeInsets.only(bottom: 12),
                                     decoration: BoxDecoration(
                                       color: _selectedChildIds.contains(child.id)
                                           ? AppColors.accent.withValues(alpha: 0.1)
-                                          : Colors.grey.shade50,
+                                          : (isDarkMode
+                                              ? AppColors.darkCard.withValues(alpha: 0.5)
+                                              : Colors.grey.shade50),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: _selectedChildIds.contains(child.id)
                                             ? AppColors.accent
-                                            : Colors.grey.shade300,
+                                            : (isDarkMode
+                                                ? Colors.grey[600]!
+                                                : Colors.grey.shade300),
                                         width: _selectedChildIds.contains(child.id) ? 2 : 1,
                                       ),
                                       boxShadow: _selectedChildIds.contains(child.id)
@@ -573,9 +637,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                           const SizedBox(width: 14),
                                           Text(
                                             child.name,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w600,
+                                              color: Theme.of(context).brightness == Brightness.dark
+                                                  ? AppColors.darkTextPrimary
+                                                  : Colors.black,
                                             ),
                                           ),
                                         ],
@@ -584,7 +651,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                       controlAffinity: ListTileControlAffinity.leading,
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     ),
-                                  )),
+                                );
+                              }).toList(),
                           ],
                         ),
                       ),
@@ -594,7 +662,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                     // Titre
                     Card(
                       elevation: 4,
-                      shadowColor: AppColors.cardShadow.color,
+                      shadowColor: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCardShadow.color
+                          : AppColors.cardShadow.color,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCard
+                          : Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -626,9 +699,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                   _selectedType == TaskType.positive
                                       ? 'Titre de la tâche positive'
                                       : 'Titre de l\'action négative',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkTextPrimary
+                                        : Colors.black,
                                   ),
                                 ),
                               ],
@@ -636,19 +712,30 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: _titleController,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTextPrimary
+                                    : Colors.black,
                               ),
                               decoration: InputDecoration(
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[600]!
+                                        : Colors.grey.shade300,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[600]!
+                                        : Colors.grey.shade300,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -663,7 +750,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                     ? 'Ex: Ranger sa chambre'
                                     : 'Ex: Ne pas faire son lit',
                                 hintStyle: TextStyle(
-                                  color: Colors.grey.shade500,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkTextLight
+                                      : Colors.grey.shade500,
                                   fontSize: 15,
                                 ),
                                 prefixIcon: Icon(
@@ -693,7 +782,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                     if (_selectedType == TaskType.positive)
                       Card(
                         elevation: 4,
-                        shadowColor: AppColors.cardShadow.color,
+                        shadowColor: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkCardShadow.color
+                            : AppColors.cardShadow.color,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkCard
+                            : Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -717,11 +811,14 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  const Text(
+                                  Text(
                                     'Tâche quotidienne',
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkTextPrimary
+                                          : Colors.black,
                                     ),
                                   ),
                                 ],
@@ -738,12 +835,18 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                         },
                                         style: OutlinedButton.styleFrom(
                                           backgroundColor: !_isDaily
-                                              ? Colors.grey.shade100
+                                              ? (Theme.of(context).brightness == Brightness.dark
+                                                  ? AppColors.darkCard.withValues(alpha: 0.5)
+                                                  : Colors.grey.shade100)
                                               : null,
                                           side: BorderSide(
                                             color: !_isDaily
-                                                ? Colors.grey.shade400
-                                                : Colors.grey.shade300,
+                                                ? (Theme.of(context).brightness == Brightness.dark
+                                                    ? Colors.grey[500]!
+                                                    : Colors.grey.shade400)
+                                                : (Theme.of(context).brightness == Brightness.dark
+                                                    ? Colors.grey[600]!
+                                                    : Colors.grey.shade300),
                                             width: 2.5,
                                           ),
                                           padding: const EdgeInsets.symmetric(vertical: 20),
@@ -757,7 +860,13 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                         ),
                                         icon: Icon(
                                           Icons.event_busy,
-                                          color: !_isDaily ? Colors.grey.shade700 : Colors.grey.shade500,
+                                          color: !_isDaily
+                                              ? (Theme.of(context).brightness == Brightness.dark
+                                                  ? AppColors.darkTextPrimary
+                                                  : Colors.grey.shade700)
+                                              : (Theme.of(context).brightness == Brightness.dark
+                                                  ? AppColors.darkTextSecondary
+                                                  : Colors.grey.shade500),
                                           size: 28,
                                         ),
                                         label: Text(
@@ -765,7 +874,13 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: !_isDaily ? Colors.grey.shade700 : Colors.grey.shade500,
+                                            color: !_isDaily
+                                                ? (Theme.of(context).brightness == Brightness.dark
+                                                    ? AppColors.darkTextPrimary
+                                                    : Colors.grey.shade700)
+                                                : (Theme.of(context).brightness == Brightness.dark
+                                                    ? AppColors.darkTextSecondary
+                                                    : Colors.grey.shade500),
                                             fontWeight: !_isDaily ? FontWeight.bold : FontWeight.normal,
                                           ),
                                         ),
@@ -787,7 +902,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                           side: BorderSide(
                                             color: _isDaily
                                                 ? AppColors.accent
-                                                : Colors.grey.shade300,
+                                                : (Theme.of(context).brightness == Brightness.dark
+                                                    ? Colors.grey[600]!
+                                                    : Colors.grey.shade300),
                                             width: 2.5,
                                           ),
                                           padding: const EdgeInsets.symmetric(vertical: 20),
@@ -801,7 +918,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                         ),
                                         icon: Icon(
                                           Icons.event_repeat,
-                                          color: _isDaily ? AppColors.accent : Colors.grey.shade500,
+                                          color: _isDaily ? AppColors.accent : (Theme.of(context).brightness == Brightness.dark
+                                              ? Colors.grey[500]!
+                                              : Colors.grey.shade500),
                                           size: 28,
                                         ),
                                         label: Text(
@@ -809,7 +928,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: _isDaily ? AppColors.accent : Colors.grey.shade500,
+                                            color: _isDaily ? AppColors.accent : (Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.grey[500]!
+                                                : Colors.grey.shade500),
                                             fontWeight: _isDaily ? FontWeight.bold : FontWeight.normal,
                                           ),
                                         ),
@@ -823,10 +944,18 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                 duration: const Duration(milliseconds: 300),
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: _isDaily ? AppColors.accent.withValues(alpha: 0.1) : Colors.grey.shade100,
+                                  color: _isDaily
+                                      ? AppColors.accent.withValues(alpha: 0.1)
+                                      : (Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkCard.withValues(alpha: 0.5)
+                                          : Colors.grey.shade100),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: _isDaily ? AppColors.accent.withValues(alpha: 0.3) : Colors.grey.shade300,
+                                    color: _isDaily
+                                        ? AppColors.accent.withValues(alpha: 0.3)
+                                        : (Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.grey[600]!
+                                            : Colors.grey.shade300),
                                     width: 1.5,
                                   ),
                                 ),
@@ -834,7 +963,11 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                   children: [
                                     Icon(
                                       _isDaily ? Icons.info : Icons.info_outline,
-                                      color: _isDaily ? AppColors.accent : Colors.grey.shade600,
+                                      color: _isDaily
+                                          ? AppColors.accent
+                                          : (Theme.of(context).brightness == Brightness.dark
+                                              ? AppColors.darkTextSecondary
+                                              : Colors.grey.shade600),
                                       size: 20,
                                     ),
                                     const SizedBox(width: 12),
@@ -845,7 +978,11 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                             : 'Cette tâche est ponctuelle et ne se répètera pas.',
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: _isDaily ? AppColors.accent : Colors.grey.shade600,
+                                          color: _isDaily
+                                              ? AppColors.accent
+                                              : (Theme.of(context).brightness == Brightness.dark
+                                                  ? AppColors.darkTextSecondary
+                                                  : Colors.grey.shade600),
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -862,7 +999,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                     // Nombre d'étoiles
                     Card(
                       elevation: 4,
-                      shadowColor: AppColors.cardShadow.color,
+                      shadowColor: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCardShadow.color
+                          : AppColors.cardShadow.color,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCard
+                          : Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -886,11 +1028,14 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                const Text(
+                                Text(
                                   'Nombre d\'étoiles',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkTextPrimary
+                                        : Colors.black,
                                   ),
                                 ),
                               ],
@@ -899,19 +1044,30 @@ class _AddTaskScreenState extends State<AddTaskScreen> with TickerProviderStateM
                             TextFormField(
                               controller: _starsController,
                               keyboardType: TextInputType.number,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTextPrimary
+                                    : Colors.black,
                               ),
                               decoration: InputDecoration(
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[600]!
+                                        : Colors.grey.shade300,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[600]!
+                                        : Colors.grey.shade300,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),

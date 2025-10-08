@@ -82,6 +82,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           if (provider.error != null) {
+            final isDarkMode = Theme.of(context).brightness == Brightness.dark;
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -89,7 +90,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   Icon(
                     Icons.error_outline_rounded,
                     size: 64,
-                    color: Colors.grey[400],
+                    color: isDarkMode ? Colors.grey[500] : Colors.grey[400],
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -97,7 +98,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey[600],
+                      color: isDarkMode ? AppColors.darkTextPrimary : Colors.grey[600],
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -105,7 +106,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     provider.error!,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[500],
+                      color: isDarkMode ? AppColors.darkTextSecondary : Colors.grey[500],
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -126,6 +127,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           if (provider.notifications.isEmpty) {
+            final isDarkMode = Theme.of(context).brightness == Brightness.dark;
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -133,7 +135,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   Icon(
                     Icons.notifications_none_rounded,
                     size: 64,
-                    color: Colors.grey[400],
+                    color: isDarkMode ? Colors.grey[500] : Colors.grey[400],
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -141,7 +143,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey[600],
+                      color: isDarkMode ? AppColors.darkTextPrimary : Colors.grey[600],
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -149,7 +151,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     'Vous n\'avez aucune notification pour le moment',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[500],
+                      color: isDarkMode ? AppColors.darkTextSecondary : Colors.grey[500],
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -284,62 +286,77 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.teal[100],
-                shape: BoxShape.circle,
+      builder: (context) {
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDarkMode ? AppColors.darkSurface : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? Colors.teal[800] : Colors.teal[100],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.family_restroom, color: isDarkMode ? Colors.teal[200] : Colors.teal[700]),
               ),
-              child: Icon(Icons.family_restroom, color: Colors.teal[700]),
-            ),
-            const SizedBox(width: 12),
-            const Text('Invitation de famille'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$invitedByUserName vous a invité à rejoindre la famille "$familyName"',
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Voulez-vous accepter cette invitation ?',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+              const SizedBox(width: 12),
+              Text(
+                'Invitation de famille',
+                style: TextStyle(
+                  color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+                ),
               ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$invitedByUserName vous a invité à rejoindre la famille "$familyName"',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Voulez-vous accepter cette invitation ?',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _rejectFamilyInvitation(context, invitationId, familyId, familyName);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: isDarkMode ? AppColors.darkTextSecondary : Colors.grey[600],
+              ),
+              child: const Text('Refuser'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _acceptFamilyInvitation(context, invitationId, familyId, familyName);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Accepter'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _rejectFamilyInvitation(context, invitationId, familyId, familyName);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
-            child: const Text('Refuser'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _acceptFamilyInvitation(context, invitationId, familyId, familyName);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Accepter'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -601,26 +618,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void _deleteNotification(BuildContext context, String notificationId) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Supprimer la notification'),
-        content: const Text('Voulez-vous vraiment supprimer cette notification ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+      builder: (context) {
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDarkMode ? AppColors.darkSurface : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'Supprimer la notification',
+            style: TextStyle(
+              color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+            ),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Provider.of<NotificationProvider>(context, listen: false)
-                  .deleteNotification(notificationId);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Supprimer'),
+          content: Text(
+            'Voulez-vous vraiment supprimer cette notification ?',
+            style: TextStyle(
+              color: isDarkMode ? AppColors.darkTextPrimary : Colors.black,
+            ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Annuler',
+                style: TextStyle(
+                  color: isDarkMode ? AppColors.darkTextSecondary : Colors.black,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Provider.of<NotificationProvider>(context, listen: false)
+                    .deleteNotification(notificationId);
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Supprimer'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -662,27 +698,29 @@ class _NotificationCard extends StatelessWidget {
   }
 
   Widget _buildNotificationCard(BuildContext context, bool isExpired) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: isExpired
-            ? Colors.grey[100]
+            ? (isDarkMode ? Colors.grey[700] : Colors.grey[100])
             : notification.isRead
-                ? Colors.white
-                : Colors.blue[50],
+                ? (isDarkMode ? AppColors.darkCard : Colors.white)
+                : (isDarkMode ? AppColors.darkCard.withOpacity(0.8) : Colors.blue[50]),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isExpired
-              ? Colors.grey[300]!
+              ? (isDarkMode ? Colors.grey[600]! : Colors.grey[300]!)
               : notification.isRead
-                  ? Colors.grey[300]!
+                  ? (isDarkMode ? Colors.grey[600]! : Colors.grey[300]!)
                   : AppColors.primary.withOpacity(0.3),
           width: notification.isRead || isExpired ? 1 : 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isExpired ? 0.02 : 0.05),
-            blurRadius: isExpired ? 5 : 10,
+            color: Colors.black.withOpacity(isExpired ? 0.02 : (isDarkMode ? 0.3 : 0.05)),
+            blurRadius: isExpired ? 5 : (isDarkMode ? 15 : 10),
             offset: const Offset(0, 2),
           ),
         ],
@@ -736,8 +774,8 @@ class _NotificationCard extends StatelessWidget {
                                     ? FontWeight.normal
                                     : FontWeight.bold,
                                 color: isExpired
-                                    ? Colors.grey[600]
-                                    : AppColors.textPrimary,
+                                    ? (isDarkMode ? Colors.grey[400] : Colors.grey[600])
+                                    : (isDarkMode ? AppColors.darkTextPrimary : AppColors.textPrimary),
                               ),
                             ),
                           ),
@@ -759,8 +797,8 @@ class _NotificationCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 14,
                             color: isExpired
-                                ? Colors.grey[500]
-                                : AppColors.textSecondary,
+                                ? (isDarkMode ? Colors.grey[500] : Colors.grey[500])
+                                : (isDarkMode ? AppColors.darkTextSecondary : AppColors.textSecondary),
                             fontWeight: (notification.isRead || isExpired)
                                 ? FontWeight.normal
                                 : FontWeight.w500,
@@ -771,7 +809,9 @@ class _NotificationCard extends StatelessWidget {
                         notification.formattedDate,
                         style: TextStyle(
                           fontSize: 12,
-                          color: isExpired ? Colors.grey[500] : Colors.grey[600],
+                          color: isExpired
+                              ? (isDarkMode ? Colors.grey[500] : Colors.grey[500])
+                              : (isDarkMode ? AppColors.darkTextLight : Colors.grey[600]),
                         ),
                       ),
                     ],
@@ -816,7 +856,7 @@ class _NotificationCard extends StatelessWidget {
                     ],
                     child: Icon(
                       Icons.more_vert_rounded,
-                      color: Colors.grey[600],
+                      color: isDarkMode ? AppColors.darkTextLight : Colors.grey[600],
                     ),
                   ),
               ],

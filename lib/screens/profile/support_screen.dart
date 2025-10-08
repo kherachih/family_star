@@ -130,9 +130,13 @@ class _SupportScreenState extends State<SupportScreen> {
             // Section Formulaire
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkCard
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [AppColors.cardShadow],
+                boxShadow: Theme.of(context).brightness == Brightness.dark
+                    ? [AppColors.darkCardShadow]
+                    : [AppColors.cardShadow],
               ),
               padding: const EdgeInsets.all(20),
               child: Form(
@@ -140,29 +144,37 @@ class _SupportScreenState extends State<SupportScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Envoyer une demande',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 20),
                     
                     // Type de demande
-                    const Text(
+                    Text(
                       'Type de demande',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[600]!
+                              : Colors.grey.shade300,
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: DropdownButtonHideUnderline(
@@ -170,6 +182,14 @@ class _SupportScreenState extends State<SupportScreen> {
                           value: _selectedType,
                           isExpanded: true,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
+                          dropdownColor: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkCard
+                              : Colors.white,
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTextPrimary
+                                : Colors.black,
+                          ),
                           items: SupportRequestType.values.map((type) {
                             return DropdownMenuItem<SupportRequestType>(
                               value: type,
@@ -303,12 +323,14 @@ class _SupportScreenState extends State<SupportScreen> {
             
             // Section Historique
             if (_userRequests.isNotEmpty) ...[
-              const Text(
+              Text(
                 'Mes demandes précédentes',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -319,12 +341,13 @@ class _SupportScreenState extends State<SupportScreen> {
                 itemCount: _userRequests.length,
                 itemBuilder: (context, index) {
                   final request = _userRequests[index];
+                  final isDarkMode = Theme.of(context).brightness == Brightness.dark;
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDarkMode ? AppColors.darkCard : Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [AppColors.cardShadow],
+                      boxShadow: isDarkMode ? [AppColors.darkCardShadow] : [AppColors.cardShadow],
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -351,9 +374,9 @@ class _SupportScreenState extends State<SupportScreen> {
                               const Spacer(),
                               Text(
                                 _formatDate(request.createdAt),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  color: isDarkMode ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                 ),
                               ),
                             ],
@@ -361,18 +384,18 @@ class _SupportScreenState extends State<SupportScreen> {
                           const SizedBox(height: 8),
                           Text(
                             request.subject,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                              color: isDarkMode ? AppColors.darkTextPrimary : AppColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             request.message,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: AppColors.textSecondary,
+                              color: isDarkMode ? AppColors.darkTextSecondary : AppColors.textSecondary,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -405,12 +428,14 @@ class _SupportScreenState extends State<SupportScreen> {
             
             // Section FAQ
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Questions fréquentes',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 16),
@@ -441,20 +466,24 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Widget _buildFAQItem(String question, String answer) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [AppColors.cardShadow],
+        boxShadow: isDarkMode ? [AppColors.darkCardShadow] : [AppColors.cardShadow],
       ),
       child: ExpansionTile(
+        backgroundColor: isDarkMode ? AppColors.darkCard : Colors.white,
+        iconColor: isDarkMode ? AppColors.darkTextPrimary : AppColors.textPrimary,
+        collapsedIconColor: isDarkMode ? AppColors.darkTextPrimary : AppColors.textPrimary,
         title: Text(
           question,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: isDarkMode ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
         ),
         children: [
@@ -462,9 +491,9 @@ class _SupportScreenState extends State<SupportScreen> {
             padding: const EdgeInsets.all(16),
             child: Text(
               answer,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: isDarkMode ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 height: 1.4,
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 import '../../services/firestore_service.dart';
@@ -46,8 +47,8 @@ class _AddParentScreenState extends State<AddParentScreen> {
 
       if (parent == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Aucun compte trouvé avec cet email'),
+          SnackBar(
+            content: Text('invite_parent.no_account_found'.tr()),
             backgroundColor: Colors.red,
           ),
         );
@@ -59,7 +60,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur lors de la recherche: ${e.toString()}'),
+          content: Text('invite_parent.search_error'.tr(args: [e.toString()])),
           backgroundColor: Colors.red,
         ),
       );
@@ -82,7 +83,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
     try {
       // S'assurer que l'utilisateur est connecté
       if (currentUser == null) {
-        throw Exception('Utilisateur non connecté');
+        throw Exception('invite_parent.user_not_connected'.tr());
       }
 
       // Si l'utilisateur actuel n'a pas de famille, en créer une pour lui
@@ -93,15 +94,15 @@ class _AddParentScreenState extends State<AddParentScreen> {
       // À ce stade, la famille doit exister. Si ce n'est pas le cas, il y a une erreur.
       final family = familyProvider.currentFamily;
       if (family == null) {
-        throw Exception('Impossible de trouver ou de créer une famille');
+        throw Exception('invite_parent.family_not_found'.tr());
       }
 
       // Vérifier si le parent est déjà dans la famille
       if (family.hasParent(_foundParent!.id)) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Ce parent fait déjà partie de la famille'),
+            SnackBar(
+              content: Text('invite_parent.already_in_family'.tr()),
               backgroundColor: Colors.orange,
             ),
           );
@@ -118,8 +119,8 @@ class _AddParentScreenState extends State<AddParentScreen> {
       if (hasPendingInvitation) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Une invitation a déjà été envoyée à ce parent'),
+            SnackBar(
+              content: Text('invite_parent.invitation_already_sent'.tr()),
               backgroundColor: Colors.orange,
             ),
           );
@@ -152,7 +153,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Invitation envoyée à ${_foundParent!.name}'),
+            content: Text('invite_parent.invitation_sent'.tr(args: [_foundParent!.name])),
             backgroundColor: Colors.green,
           ),
         );
@@ -162,7 +163,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text('invite_parent.error'.tr(args: [e.toString()])),
             backgroundColor: Colors.red,
           ),
         );
@@ -180,7 +181,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inviter un parent'),
+        title: Text('invite_parent.title'.tr()),
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
@@ -205,7 +206,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Entrez l\'email du parent que vous souhaitez inviter à rejoindre votre famille. Le parent doit déjà avoir un compte et recevra une notification d\'invitation.',
+                        'invite_parent.instruction'.tr(),
                         style: TextStyle(
                           color: Colors.blue[700],
                           fontSize: 14,
@@ -221,18 +222,18 @@ class _AddParentScreenState extends State<AddParentScreen> {
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email du parent',
-                  prefixIcon: Icon(Icons.email),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'invite_parent.email_label'.tr(),
+                  prefixIcon: const Icon(Icons.email),
+                  border: const OutlineInputBorder(),
                   hintText: 'exemple@email.com',
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Veuillez saisir un email';
+                    return 'invite_parent.email_required'.tr();
                   }
                   if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
-                    return 'Veuillez saisir un email valide';
+                    return 'invite_parent.email_invalid'.tr();
                   }
                   return null;
                 },
@@ -253,7 +254,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
                         ),
                       )
                     : const Icon(Icons.search),
-                label: Text(_isLoading ? 'Recherche...' : 'Rechercher'),
+                label: Text(_isLoading ? 'invite_parent.searching'.tr() : 'invite_parent.search_button'.tr()),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
                   foregroundColor: Colors.white,
@@ -265,9 +266,9 @@ class _AddParentScreenState extends State<AddParentScreen> {
 
               // Résultat de la recherche
               if (_foundParent != null) ...[
-                const Text(
-                  'Parent trouvé:',
-                  style: TextStyle(
+                Text(
+                  'invite_parent.parent_found'.tr(),
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -339,7 +340,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
                           ),
                         )
                       : const Icon(Icons.mail),
-                  label: Text(_isLoading ? 'Envoi...' : 'Inviter à rejoindre la famille'),
+                  label: Text(_isLoading ? 'invite_parent.inviting'.tr() : 'invite_parent.invite_button'.tr()),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
@@ -364,7 +365,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Aucun parent trouvé avec cet email. Vérifiez que l\'email est correct et que le parent a déjà créé un compte.',
+                          'invite_parent.no_parent_found'.tr(),
                           style: TextStyle(
                             color: Colors.red[700],
                             fontSize: 14,
